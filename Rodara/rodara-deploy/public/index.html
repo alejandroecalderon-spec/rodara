@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>rodara · Script Breakdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+  :root{
+    --bg:#080B12;
+    --panel:#0E121C;
+    --panel-raised:#121826;
+    --navy:#16233F;
+    --navy-line:#2A3A5C;
+    --ink:#E7EBF3;
+    --ink-soft:#8B95AC;
+    --neon-cyan:#3DF0E0;
+    --neon-lime:#C7FF4D;
+    --neon-magenta:#FF4FD8;
+    --neon-amber:#FFC93D;
+    --neon-blue:#4D9CFF;
+    --white:#0A0E17;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;}
+  body{
+    position:relative;
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(77,156,255,0.10), transparent 45%),
+      radial-gradient(circle at 100% 20%, rgba(255,79,216,0.06), transparent 40%),
+      radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%);
+    background-attachment:fixed;
+    min-height:100vh;
+  }
+
+  /* Film grain texture — subtle, like real stock, not a distracting effect */
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+    opacity:0.05;
+    mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* Sprocket-hole strips along the far edges, like 35mm film stock */
+  .sprockets{
+    position:fixed;
+    top:0; bottom:0;
+    width:12px;
+    z-index:0;
+    pointer-events:none;
+    background-image:radial-gradient(circle at 6px 10px, rgba(231,235,243,0.14) 3px, transparent 3.4px);
+    background-size:12px 46px;
+    background-repeat:repeat-y;
+  }
+  .sprockets-left{left:6px;}
+  .sprockets-right{right:6px;}
+  @media (max-width:900px){ .sprockets{display:none;} }
+
+  .wrap{max-width:1040px;margin:0 auto;padding:48px 28px 80px; position:relative; z-index:1;}
+
+  /* Title block */
+  .titleblock{
+    text-align:center;
+    padding:36px 20px 44px;
+    margin-bottom:40px;
+    position:relative;
+  }
+  .titleblock::after{
+    content:"";
+    position:absolute;
+    bottom:0; left:50%;
+    transform:translateX(-50%);
+    width:120px; height:4px;
+    border-radius:999px;
+    background:linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+    opacity:0.6;
+  }
+  .titleblock .eyebrow{
+    font-family:'Courier Prime', monospace;
+    font-size:12px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--neon-cyan);
+    margin-bottom:14px;
+    text-shadow:0 0 12px rgba(61,240,224,0.45);
+  }
+  .titleblock h1{
+    font-family:'Courier Prime', monospace;
+    font-weight:700;
+    font-size:52px;
+    letter-spacing:.02em;
+    margin:0 0 10px;
+    color:var(--ink);
+    text-transform:lowercase;
+  }
+  .titleblock p.subtitle{
+    font-size:15px;
+    color:var(--ink-soft);
+    max-width:520px;
+    margin:0 auto;
+    line-height:1.5;
+    text-align:center;
+    display:block;
+  }
+
+  .page{
+    background:var(--panel);
+    border:1px solid var(--navy-line);
+    box-shadow:0 0 50px rgba(61,240,224,0.07), 0 20px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.02);
+    padding:44px 44px 44px 60px;
+    position:relative;
+    border-radius:32px;
+  }
+  .page::before{
+    content:"";
+    position:absolute;
+    left:36px; top:44px; bottom:44px;
+    width:4px;
+    border-radius:4px;
+    background:linear-gradient(180deg, var(--neon-cyan), var(--neon-blue) 50%, var(--neon-magenta));
+    opacity:0.55;
+  }
+
+  label{
+    display:block;
+    font-family:'Courier Prime', monospace;
+    font-size:12px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--neon-cyan);
+    margin-bottom:8px;
+  }
+  textarea{
+    width:100%;
+    min-height:220px;
+    font-family:'Courier Prime', monospace;
+    font-size:13.5px;
+    line-height:1.55;
+    padding:20px 22px;
+    border:1px solid var(--navy-line);
+    border-radius:22px;
+    background:var(--white);
+    color:var(--ink);
+    resize:vertical;
+  }
+  textarea::placeholder{color:#4A5268;}
+  textarea:focus{outline:2px solid var(--neon-cyan); outline-offset:1px;}
+
+  .upload-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+  .upload-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    padding:10px 20px;
+    border-radius:999px;
+    border:1px solid rgba(61,240,224,0.4);
+    background:rgba(61,240,224,0.06);
+    color:var(--neon-cyan);
+    cursor:pointer;
+    transition:background .15s ease, box-shadow .15s ease;
+  }
+  .upload-btn:hover{background:rgba(61,240,224,0.15); box-shadow:0 0 14px rgba(61,240,224,0.3);}
+  .upload-filename{font-size:12.5px; color:var(--ink-soft); font-style:italic;}
+  .upload-status{
+    font-family:'Courier Prime', monospace;
+    font-size:12px;
+    color:var(--neon-cyan);
+    min-height:16px;
+    margin-bottom:10px;
+  }
+  .upload-status.error{color:var(--neon-magenta);}
+  .vision-btn{margin-top:10px; font-size:13px !important; padding:10px 20px !important;}
+
+  .row{display:flex; gap:16px; align-items:center; margin-top:18px; flex-wrap:wrap;}
+  button{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    padding:13px 26px;
+    border-radius:999px;
+    border:none;
+    cursor:pointer;
+    transition:transform .08s ease, opacity .15s ease, box-shadow .15s ease;
+  }
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.45; cursor:not-allowed;}
+  .btn-primary{
+    background:var(--neon-cyan);
+    color:#04211D;
+    box-shadow:0 0 18px rgba(61,240,224,0.35);
+  }
+  .btn-primary:hover:not(:disabled){
+    background:#5FF6E8;
+    box-shadow:0 0 26px rgba(61,240,224,0.55);
+  }
+  .btn-ghost{background:transparent; color:var(--ink-soft); border:1px solid var(--navy-line);}
+  .btn-ghost:hover{border-color:var(--neon-cyan); color:var(--neon-cyan);}
+
+  .sample-link{font-size:13px; color:var(--neon-blue); cursor:pointer; text-decoration:underline; text-underline-offset:2px;}
+  .sample-link:hover{color:var(--neon-cyan);}
+
+  .status{
+    font-family:'Courier Prime', monospace;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-top:14px;
+    min-height:18px;
+  }
+  .status.error{color:var(--neon-magenta);}
+
+  /* Breakdown output */
+  .results{margin-top:44px;}
+  .results-head{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding-bottom:14px; margin-bottom:10px;
+    border-bottom:1px solid transparent;
+    background:linear-gradient(var(--panel),var(--panel)) padding-box,
+               linear-gradient(90deg, var(--neon-cyan), transparent 60%) border-box;
+    border-bottom-width:2px;
+    border-radius:2px 2px 0 0;
+  }
+  .results-head h2{
+    font-family:'Courier Prime', monospace;
+    font-size:20px; margin:0;
+    color:var(--ink);
+  }
+  .results-head .count{font-size:13px; color:var(--ink-soft);}
+
+  .legend{
+    display:flex; gap:18px; flex-wrap:wrap;
+    margin:14px 0 22px;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .swatch{width:10px; height:10px; border-radius:50%; display:inline-block;}
+
+  .scene{
+    display:flex;
+    background:var(--panel-raised);
+    border:1px solid var(--navy-line);
+    border-radius:20px;
+    padding:18px 22px;
+    margin-bottom:14px;
+    gap:18px;
+  }
+  .scene-num{
+    font-family:'Courier Prime', monospace;
+    font-weight:700;
+    font-size:14px;
+    width:34px;
+    height:34px;
+    flex-shrink:0;
+    color:var(--neon-cyan);
+    background:rgba(61,240,224,0.08);
+    border:1px solid rgba(61,240,224,0.3);
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .scene-body{flex:1; min-width:0;}
+  .scene-heading{
+    font-family:'Courier Prime', monospace;
+    font-weight:700;
+    font-size:14.5px;
+    letter-spacing:.02em;
+    margin-bottom:8px;
+    color:var(--ink);
+  }
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;}
+
+  .field-row{
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    margin-bottom:6px;
+  }
+  .field-label{
+    font-family:'Courier Prime', monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--ink-soft);
+    width:44px;
+    flex-shrink:0;
+    padding-top:4px;
+  }
+  .field-tags{display:flex; flex-wrap:wrap; gap:6px; flex:1;}
+  .empty-field{font-size:11.5px; color:#3E465A; font-style:italic;}
+  .tag{
+    font-size:11.5px;
+    font-weight:600;
+    padding:3px 9px 3px 8px;
+    border-radius:20px;
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    white-space:nowrap;
+    border:1px solid transparent;
+    background:rgba(255,255,255,0.03);
+  }
+  .tag.cast{color:var(--neon-amber); border-color:rgba(255,201,61,0.4); box-shadow:0 0 8px rgba(255,201,61,0.15);}
+  .tag.location{color:var(--neon-lime); border-color:rgba(199,255,77,0.4); box-shadow:0 0 8px rgba(199,255,77,0.15);}
+  .tag.prop{color:var(--neon-magenta); border-color:rgba(255,79,216,0.4); box-shadow:0 0 8px rgba(255,79,216,0.15);}
+  .tag.time{color:var(--neon-blue); border-color:rgba(77,156,255,0.4); box-shadow:0 0 8px rgba(77,156,255,0.15);}
+  .tag.dept{color:#9C8CFF; border-color:rgba(156,140,255,0.4); box-shadow:0 0 8px rgba(156,140,255,0.15);}
+  .tag.crew{color:#FF8A5C; border-color:rgba(255,138,92,0.4); box-shadow:0 0 8px rgba(255,138,92,0.15);}
+  .tag.equip{color:#6FE0A8; border-color:rgba(111,224,168,0.4); box-shadow:0 0 8px rgba(111,224,168,0.15);}
+
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;}
+  .chip{
+    font-size:11.5px;
+    font-weight:600;
+    padding:4px 12px;
+    border-radius:999px;
+    display:inline-flex;
+    align-items:center;
+  }
+  .complexity-low{background:rgba(199,255,77,0.10); color:var(--neon-lime); border:1px solid rgba(199,255,77,0.3);}
+  .complexity-medium{background:rgba(255,201,61,0.10); color:var(--neon-amber); border:1px solid rgba(255,201,61,0.3);}
+  .complexity-high{background:rgba(255,79,216,0.10); color:var(--neon-magenta); border:1px solid rgba(255,79,216,0.3);}
+  .chip.permit{background:rgba(77,156,255,0.10); color:var(--neon-blue); border:1px solid rgba(77,156,255,0.3);}
+
+  .loctype-row{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-top:10px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .loctype-row strong{color:var(--ink); font-weight:600;}
+  .scout-btn{
+    font-family:'Inter',sans-serif;
+    font-size:11.5px;
+    font-weight:600;
+    padding:6px 14px;
+    border-radius:999px;
+    border:1px solid rgba(61,240,224,0.4);
+    background:rgba(61,240,224,0.06);
+    color:var(--neon-cyan);
+    cursor:pointer;
+  }
+  .scout-btn:hover:not(:disabled){background:rgba(61,240,224,0.15); box-shadow:0 0 12px rgba(61,240,224,0.25);}
+  .scout-btn:disabled{opacity:0.5; cursor:not-allowed;}
+
+  .scout-bar{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+    background:var(--panel-raised);
+    border:1px solid var(--navy-line);
+    border-radius:999px;
+    padding:10px 20px;
+    margin-bottom:26px;
+  }
+  .scout-label{
+    font-family:'Courier Prime', monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--neon-cyan);
+    margin:0;
+  }
+  #city-input{
+    background:var(--white);
+    border:1px solid var(--navy-line);
+    border-radius:999px;
+    padding:7px 16px;
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    min-width:180px;
+  }
+  #city-input:focus{outline:2px solid var(--neon-cyan); outline-offset:1px;}
+  .scout-hint{font-size:11.5px; color:var(--ink-soft);}
+
+  .scout-results{margin-top:14px;}
+  .scout-note{font-size:12.5px; color:var(--ink-soft); font-style:italic;}
+  .scout-note.error{color:var(--neon-magenta);}
+  .scout-list{display:flex; flex-direction:column; gap:10px;}
+  .scout-card{
+    background:rgba(77,156,255,0.05);
+    border:1px solid rgba(77,156,255,0.25);
+    border-radius:16px;
+    padding:12px 16px;
+  }
+  .scout-name{font-weight:700; font-size:13.5px; color:var(--ink);}
+  .scout-area{font-size:12px; color:var(--neon-blue); margin:2px 0 6px;}
+  .scout-note-text{font-size:12.5px; color:var(--ink-soft); line-height:1.5;}
+  .scout-disclaimer{font-size:11px; color:var(--ink-soft); margin-top:8px; font-style:italic;}
+
+  /* Stat bar */
+  .stat-bar{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    margin:16px 0 20px;
+  }
+  .stat-chip{
+    flex:1;
+    min-width:110px;
+    background:var(--panel-raised);
+    border:1px solid var(--navy-line);
+    border-radius:18px;
+    padding:14px 18px;
+    text-align:center;
+  }
+  .stat-num{
+    font-family:'Courier Prime', monospace;
+    font-weight:700;
+    font-size:24px;
+    color:var(--neon-cyan);
+    display:block;
+  }
+  .stat-label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--ink-soft);
+    display:block;
+    margin-top:2px;
+  }
+
+  /* Tabs */
+  .tabs{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:18px;
+    border-bottom:1px solid var(--navy-line);
+    padding-bottom:14px;
+  }
+  .tab-btn{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    padding:9px 20px;
+    border-radius:999px;
+    border:1px solid var(--navy-line);
+    background:transparent;
+    color:var(--ink-soft);
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .tab-btn:hover{color:var(--ink); border-color:var(--ink-soft);}
+  .tab-btn.active{
+    background:var(--neon-cyan);
+    color:#04211D;
+    border-color:var(--neon-cyan);
+    box-shadow:0 0 14px rgba(61,240,224,0.3);
+  }
+
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  /* Category cards (cast/locations/props/departments) */
+  .cat-card{
+    background:var(--panel-raised);
+    border:1px solid var(--navy-line);
+    border-radius:18px;
+    padding:16px 20px;
+    margin-bottom:12px;
+  }
+  .cat-card-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:8px;
+  }
+  .cat-name{
+    font-family:'Courier Prime', monospace;
+    font-weight:700;
+    font-size:14.5px;
+    color:var(--ink);
+  }
+  .cat-count{
+    font-size:11.5px;
+    font-weight:600;
+    padding:3px 11px;
+    border-radius:999px;
+    background:rgba(61,240,224,0.1);
+    color:var(--neon-cyan);
+    border:1px solid rgba(61,240,224,0.3);
+  }
+  .cat-scenes{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .scene-chip{
+    font-family:'Courier Prime', monospace;
+    font-size:11px;
+    font-weight:600;
+    width:24px; height:24px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:50%;
+    background:rgba(255,255,255,0.04);
+    color:var(--ink-soft);
+    border:1px solid var(--navy-line);
+  }
+  .cat-meta{font-size:12px; color:var(--ink-soft); margin-top:6px;}
+  .cat-empty{text-align:center; padding:40px 20px; color:var(--ink-soft); font-size:13.5px;}
+  .base-crew-note{
+    background:rgba(255,255,255,0.02);
+    border:1px dashed var(--navy-line);
+    border-radius:14px;
+    padding:12px 16px;
+    margin-bottom:14px;
+    font-style:normal;
+  }
+  .synopsis{font-size:13.5px; color:var(--ink-soft); line-height:1.5;}
+  .synopsis-top{margin-bottom:12px;}
+
+  .empty{
+    text-align:center;
+    padding:50px 20px;
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+
+  .toolbar-out{display:flex; gap:12px; margin-top:4px;}
+
+  footer{
+    text-align:center;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:36px;
+    font-family:'Courier Prime', monospace;
+    letter-spacing:.05em;
+  }
+
+  @media (max-width:640px){
+    .titleblock h1{font-size:38px;}
+    .page{padding:28px 20px 28px 34px;}
+    .page::before{left:18px;}
+  }
+</style>
+</head>
+<body>
+<div class="sprockets sprockets-left"></div>
+<div class="sprockets sprockets-right"></div>
+<div class="wrap">
+
+  <div class="titleblock">
+    <div class="eyebrow">Fade In · Production Intelligence</div>
+    <h1>rodara</h1>
+    <p class="subtitle">Paste a scene or a full script. rodara reads it like a 1st AD would: scenes, characters, locations, props, and time of day, in under a minute.</p>
+  </div>
+
+  <div class="page">
+    <label for="script-input">01 · Screenplay Text</label>
+
+    <div class="upload-row">
+      <label class="upload-btn" for="file-input">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload PDF or .txt
+      </label>
+      <input type="file" id="file-input" accept=".pdf,.txt" hidden />
+      <span class="upload-filename" id="upload-filename"></span>
+    </div>
+    <div class="upload-status" id="upload-status"></div>
+
+    <textarea id="script-input" placeholder="INT. WAREHOUSE - NIGHT
+
+Rain hammers the tin roof. MAYA (30s, soaked, jaw set) kicks open a rusted door...&#10;&#10;Paste as much of your script as you'd like, or upload a PDF/.txt file above."></textarea>
+
+    <div class="row">
+      <button class="btn-primary" id="parse-btn">Break Down Script</button>
+      <button class="btn-ghost" id="clear-btn">Clear</button>
+      <span class="sample-link" id="sample-btn">Try a sample scene</span>
+    </div>
+    <div class="status" id="status"></div>
+
+    <div class="results" id="results" style="display:none;">
+      <div class="results-head">
+        <h2>02 · Breakdown</h2>
+        <span class="count" id="scene-count"></span>
+      </div>
+
+      <div class="stat-bar" id="stat-bar"></div>
+
+      <div class="scout-bar">
+        <label for="city-input" class="scout-label">Scouting near</label>
+        <input type="text" id="city-input" placeholder="e.g. Atlanta, GA" />
+        <span class="scout-hint">Used when you click "Find real locations" on a scene</span>
+      </div>
+
+      <div class="tabs" id="tabs">
+        <button class="tab-btn active" data-tab="scenes">Scenes</button>
+        <button class="tab-btn" data-tab="cast">Cast</button>
+        <button class="tab-btn" data-tab="locations">Locations</button>
+        <button class="tab-btn" data-tab="props">Props</button>
+        <button class="tab-btn" data-tab="departments">Departments</button>
+        <button class="tab-btn" data-tab="crew">Crew</button>
+        <button class="tab-btn" data-tab="equipment">Equipment</button>
+      </div>
+
+      <div class="legend" id="legend-scenes">
+        <span><i class="swatch" style="background:var(--neon-amber)"></i>Cast</span>
+        <span><i class="swatch" style="background:var(--neon-lime)"></i>Location</span>
+        <span><i class="swatch" style="background:var(--neon-magenta)"></i>Props</span>
+        <span><i class="swatch" style="background:var(--neon-blue)"></i>Time of Day</span>
+        <span><i class="swatch" style="background:#9C8CFF"></i>Department</span>
+        <span><i class="swatch" style="background:#FF8A5C"></i>Crew</span>
+        <span><i class="swatch" style="background:#6FE0A8"></i>Equipment</span>
+      </div>
+
+      <div class="tab-panel active" id="panel-scenes">
+        <div id="scene-list"></div>
+      </div>
+      <div class="tab-panel" id="panel-cast"></div>
+      <div class="tab-panel" id="panel-locations"></div>
+      <div class="tab-panel" id="panel-props"></div>
+      <div class="tab-panel" id="panel-departments"></div>
+      <div class="tab-panel" id="panel-crew"></div>
+      <div class="tab-panel" id="panel-equipment"></div>
+
+      <div class="toolbar-out">
+        <button class="btn-ghost" id="export-xlsx">Export Excel (color-coded)</button>
+        <button class="btn-ghost" id="export-csv">Export CSV</button>
+        <button class="btn-ghost" id="export-json">Export JSON</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>RODARA · V1 PROTOTYPE · SCRIPT BREAKDOWN ENGINE</footer>
+</div>
+
+<script>
+const SAMPLE = `INT. WAREHOUSE - NIGHT
+
+Rain hammers the tin roof. MAYA (30s, soaked, jaw set) kicks open a rusted door, flashlight sweeping stacked shipping crates. A CHAIN SAW leans against the far wall.
+
+MAYA
+(into radio)
+I'm in. It's empty.
+
+Footsteps. DENNIS (50s, limping, holds a revolver) emerges from the shadows.
+
+DENNIS
+Not empty enough.
+
+EXT. WAREHOUSE ROOFTOP - CONTINUOUS
+
+Rain pours across the gravel roof. A SNIPER RIFLE rests on a tripod near the ledge. JULES (20s, tactical vest, earpiece) watches the door below through a scope.
+
+JULES
+(into earpiece)
+Maya's inside. Dennis has a gun on her.
+
+INT. WAREHOUSE - CONTINUOUS
+
+Maya raises her hands slowly. A CROWBAR sits within reach on a nearby crate.
+
+MAYA
+You don't want to do this, Dennis.
+
+DENNIS
+I really do.`;
+
+const statusEl = document.getElementById('status');
+const resultsEl = document.getElementById('results');
+const sceneListEl = document.getElementById('scene-list');
+const sceneCountEl = document.getElementById('scene-count');
+const inputEl = document.getElementById('script-input');
+const fileInput = document.getElementById('file-input');
+const uploadFilename = document.getElementById('upload-filename');
+const uploadStatus = document.getElementById('upload-status');
+let lastScenes = [];
+
+if (window['pdfjsLib']) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  uploadFilename.textContent = file.name;
+  uploadStatus.classList.remove('error');
+  uploadStatus.textContent = 'Reading file…';
+  resultsEl.style.display = 'none';
+
+  try {
+    let text = '';
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      text = await extractPdfText(file);
+    } else {
+      text = await file.text();
+    }
+
+    if (!text.trim()) {
+      throw new Error('No extractable text found. If this is a scanned PDF (images of pages), it needs OCR first.');
+    }
+
+    inputEl.value = text;
+    uploadStatus.textContent = `Loaded ${text.length.toLocaleString()} characters from ${file.name}.`;
+  } catch (err) {
+    console.error(err);
+    if (err.isLowExtraction && err.partialText && err.partialText.trim()) {
+      inputEl.value = err.partialText;
+    }
+    uploadStatus.innerHTML = 'Warning: ' + esc(err.message);
+    uploadStatus.classList.add('error');
+
+    if (err.isLowExtraction) {
+      const visionBtn = document.createElement('button');
+      visionBtn.className = 'btn-primary vision-btn';
+      visionBtn.textContent = 'Read with AI vision instead (slower, works on scans)';
+      visionBtn.addEventListener('click', () => runVisionBreakdown(file, visionBtn));
+      uploadStatus.appendChild(document.createElement('br'));
+      uploadStatus.appendChild(visionBtn);
+    }
+  }
+});
+
+async function renderPageToJpegBase64(pdf, pageNum, scale = 1.3) {
+  const page = await pdf.getPage(pageNum);
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const ctx = canvas.getContext('2d');
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+  return dataUrl.split(',')[1];
+}
+
+const VISION_SYSTEM_PROMPT = `You are a professional 1st AD performing a script breakdown by reading screenplay page images directly (this PDF has no extractable text layer, so you are reading it visually like a human would). For the pages shown, extract every scene as structured JSON. Respond with ONLY a raw JSON array, no markdown fences, no commentary, matching exactly this shape:
+
+[
+  {
+    "heading": "INT. WAREHOUSE - NIGHT",
+    "int_ext": "INT",
+    "location": "WAREHOUSE",
+    "location_type": "industrial warehouse",
+    "time_of_day": "NIGHT",
+    "characters": ["MAYA", "DENNIS"],
+    "props": ["FLASHLIGHT", "CHAIN SAW", "REVOLVER"],
+    "departments": ["WEAPONS", "STUNTS"],
+    "complexity": "Medium",
+    "permit_flag": "Possible weapons permit / armorer needed",
+    "crew": ["Armorer", "Stunt Coordinator"],
+    "equipment": ["Blank-firing prop weapons", "Padded stunt rigging"],
+    "synopsis": "One short sentence describing what happens in the scene."
+  }
+]
+
+Field rules:
+- Do NOT include a scene_number field — scenes will be numbered after merging across page batches.
+- heading: exactly as written on the page (INT./EXT., location, time of day).
+- location_type: a short, generic real-world category (e.g. "industrial warehouse", "suburban kitchen") for later location scouting.
+- characters: only named or clearly present characters.
+- props: only physically significant props mentioned in action lines.
+- departments: pick zero or more from: STUNTS, WEAPONS, SFX/PYRO, VFX, ANIMALS, MINORS, WATER/MARINE, VEHICLES, INTIMACY, CROWD/EXTRAS, NIGHT EXTERIOR, PRACTICAL FX. Empty array if none apply.
+- complexity: "Low", "Medium", or "High".
+- permit_flag: short phrase or empty string.
+- crew: specialist crew roles this scene needs BEYOND a standard base crew (director, DP, 1st AD, gaffer, key grip, sound mixer, script supervisor — don't list those). Only specialists tied to what the scene requires, e.g. Stunt Coordinator, Armorer, SFX Supervisor/Safety Officer, Animal Wrangler, Studio Teacher/Guardian, Intimacy Coordinator, Marine/Water Safety Coordinator, Generator Operator, VFX Supervisor. Empty array if none.
+- equipment: specific gear beyond standard camera/lighting/sound, e.g. "Rain rig / wet-weather gear", "Blank-firing prop weapons", "Padded stunt rigging / crash mats", "Generator (night exterior)", "Green screen", "Harness and safety cables". Empty array if none.
+- synopsis: one plain sentence.
+- If a scene clearly continues from the previous batch of pages (no new scene heading at the top of this batch), do not duplicate it — only include scenes that start within these pages.
+- If a page is a title page, blank, or contains no scene content, skip it silently.`;
+
+async function runVisionBreakdown(file, triggerBtn) {
+  triggerBtn.disabled = true;
+  triggerBtn.textContent = 'Loading PDF pages…';
+  resultsEl.style.display = 'block';
+  sceneListEl.innerHTML = '';
+  sceneCountEl.textContent = '';
+  statusEl.classList.remove('error');
+
+  const BATCH_SIZE = 6;
+  let merged = [];
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const totalPages = pdf.numPages;
+    const totalBatches = Math.ceil(totalPages / BATCH_SIZE);
+
+    for (let b = 0; b < totalBatches; b++) {
+      const startPage = b * BATCH_SIZE + 1;
+      const endPage = Math.min(startPage + BATCH_SIZE - 1, totalPages);
+      triggerBtn.textContent = `Reading pages ${startPage}-${endPage} of ${totalPages}…`;
+      statusEl.textContent = `AI vision pass: pages ${startPage}-${endPage} of ${totalPages} (${merged.length} scenes so far)`;
+
+      const imageBlocks = [];
+      for (let p = startPage; p <= endPage; p++) {
+        const b64 = await renderPageToJpegBase64(pdf, p);
+        imageBlocks.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } });
+      }
+
+      const response = await fetchWithRetry(API_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 4096,
+          system: VISION_SYSTEM_PROMPT,
+          messages: [
+            {
+              role: "user",
+              content: [
+                ...imageBlocks,
+                { type: "text", text: `These are screenplay pages ${startPage}-${endPage} of a ${totalPages}-page script, in order. Extract the scenes as instructed.` }
+              ]
+            }
+          ]
+        })
+      }, {
+        onRetry: (attempt, max, waitSec) => {
+          statusEl.textContent = `Rate limited on pages ${startPage}-${endPage} — retrying in ${waitSec}s (attempt ${attempt}/${max})…`;
+          triggerBtn.textContent = `Rate limited — retrying in ${waitSec}s…`;
+        }
+      });
+
+      if (!response.ok) throw new Error(`API request failed on pages ${startPage}-${endPage} (${response.status})`);
+      const data = await response.json();
+      const textBlock = data.content.find(x => x.type === "text");
+      if (textBlock) {
+        let raw = textBlock.text.trim().replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+        let batchScenes = [];
+        try {
+          batchScenes = JSON.parse(raw);
+        } catch (e) {
+          const match = raw.match(/\[[\s\S]*\]/);
+          if (match) { try { batchScenes = JSON.parse(match[0]); } catch (e2) { batchScenes = []; } }
+        }
+        merged = merged.concat(batchScenes);
+        merged.forEach((s, idx) => s.scene_number = idx + 1);
+        lastScenes = merged;
+        renderScenes(merged);
+      }
+    }
+
+    statusEl.textContent = `Done. ${vernacular(merged.length)} extracted via AI vision from ${totalPages} pages.`;
+    uploadStatus.textContent = `Read ${totalPages} pages via AI vision.`;
+    uploadStatus.classList.remove('error');
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = 'Error during AI vision reading: ' + err.message + (merged.length ? ` (${merged.length} scenes recovered before the error).` : '');
+    statusEl.classList.add('error');
+  } finally {
+    triggerBtn.disabled = false;
+    triggerBtn.textContent = 'Read with AI vision instead (slower, works on scans)';
+  }
+}
+
+function vernacular(n) {
+  return `${n} scene${n === 1 ? '' : 's'}`;
+}
+
+async function extractPdfText(file) {
+  if (!window['pdfjsLib']) {
+    throw new Error('PDF reader failed to load. Try refreshing, or paste the script text instead.');
+  }
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  let pagesWithLittleText = 0;
+  const LOW_TEXT_THRESHOLD = 40; // chars — a real script page has hundreds
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    uploadStatus.textContent = `Reading page ${i} of ${pdf.numPages}…`;
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(item => item.str).join(' ');
+    if (pageText.trim().length < LOW_TEXT_THRESHOLD) pagesWithLittleText++;
+    fullText += pageText + '\n\n';
+  }
+
+  const lowTextRatio = pagesWithLittleText / pdf.numPages;
+  if (lowTextRatio > 0.5) {
+    const err = new Error(
+      `Only ${fullText.trim().length.toLocaleString()} characters came out of ${pdf.numPages} pages (${pagesWithLittleText} pages had almost no extractable text). ` +
+      `This PDF likely has no real text layer for most pages — either it's scanned/image-based, or it was exported from screenwriting software with embedded fonts that don't map to extractable text. ` +
+      `Try: (1) re-exporting the script as plain text or a "print to PDF" from a text editor, or (2) pasting the script text directly instead of uploading.`
+    );
+    err.isLowExtraction = true;
+    err.partialText = fullText;
+    throw err;
+  }
+
+  return fullText;
+}
+
+document.getElementById('sample-btn').addEventListener('click', () => {
+  inputEl.value = SAMPLE;
+});
+
+document.getElementById('clear-btn').addEventListener('click', () => {
+  inputEl.value = '';
+  resultsEl.style.display = 'none';
+  statusEl.textContent = '';
+  statusEl.classList.remove('error');
+  uploadFilename.textContent = '';
+  uploadStatus.textContent = '';
+  uploadStatus.classList.remove('error');
+  fileInput.value = '';
+});
+
+document.getElementById('parse-btn').addEventListener('click', runBreakdown);
+
+const TEXT_SYSTEM_PROMPT = `You are a professional 1st AD performing a script breakdown. Given raw screenplay text, extract every scene as structured JSON. Respond with ONLY a raw JSON array, no markdown fences, no commentary, matching exactly this shape:
+
+[
+  {
+    "heading": "INT. WAREHOUSE - NIGHT",
+    "int_ext": "INT",
+    "location": "WAREHOUSE",
+    "location_type": "industrial warehouse",
+    "time_of_day": "NIGHT",
+    "characters": ["MAYA", "DENNIS"],
+    "props": ["FLASHLIGHT", "CHAIN SAW", "REVOLVER"],
+    "departments": ["WEAPONS", "STUNTS"],
+    "complexity": "Medium",
+    "permit_flag": "Possible weapons permit / armorer needed",
+    "crew": ["Armorer", "Stunt Coordinator"],
+    "equipment": ["Blank-firing prop weapons", "Padded stunt rigging"],
+    "synopsis": "One short sentence describing what happens in the scene."
+  }
+]
+
+Field rules:
+- Do NOT include a scene_number field — scenes are numbered after merging.
+- heading: exactly as written (INT./EXT., location, time of day).
+- location_type: a short, generic real-world category for this location (e.g. "industrial warehouse", "suburban kitchen", "rooftop", "diner", "forest trail") — used later to search for real rentable locations, so keep it a common, searchable category, not the specific fictional name.
+- characters: only named or clearly present characters (skip vague background extras).
+- props: only physically significant props mentioned in action lines (skip incidental scenery).
+- departments: pick zero or more from this fixed list based on what the scene actually requires: STUNTS, WEAPONS, SFX/PYRO, VFX, ANIMALS, MINORS, WATER/MARINE, VEHICLES, INTIMACY, CROWD/EXTRAS, NIGHT EXTERIOR, PRACTICAL FX. Leave empty array if none apply — don't force it.
+- complexity: "Low", "Medium", or "High" — a rough estimate of how hard this scene is to shoot (cast count, stunts, location logistics, weather dependency).
+- permit_flag: one short phrase noting any likely permit, insurance, or specialist need, or empty string if nothing notable.
+- crew: specialist crew roles this scene needs BEYOND a standard base crew (director, DP, 1st AD, gaffer, key grip, sound mixer, script supervisor — don't list those). Only specialists tied to what the scene requires. Empty array if none.
+- equipment: specific gear beyond standard camera/lighting/sound package. Empty array if none.
+- synopsis: one plain sentence, no more.
+- If the text is not screenplay-formatted, do your best to infer scene breaks from context.`;
+
+// Splits script text into blocks, each starting at a scene heading (INT./EXT./I·E.),
+// so batches never cut a scene in half.
+function splitIntoSceneBlocks(text) {
+  const headingRegex = /^\s*(INT\.|EXT\.|INT\/EXT\.|I\/E\.)/gim;
+  const matches = [...text.matchAll(headingRegex)];
+  if (matches.length < 2) return [text]; // no reliable headings found — treat as one block
+  const blocks = [];
+  for (let i = 0; i < matches.length; i++) {
+    const start = matches[i].index;
+    const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
+    blocks.push(text.slice(start, end));
+  }
+  return blocks;
+}
+
+// Groups scene blocks into batches under a target character budget per API call.
+function batchSceneBlocks(blocks, maxCharsPerBatch = 12000) {
+  const batches = [];
+  let current = '';
+  for (const block of blocks) {
+    if (current && (current.length + block.length) > maxCharsPerBatch) {
+      batches.push(current);
+      current = block;
+    } else {
+      current += block;
+    }
+  }
+  if (current) batches.push(current);
+  return batches;
+}
+
+async function callParseAPI(chunkText, onRetryStatus) {
+  const response = await fetchWithRetry(API_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 8192,
+      system: TEXT_SYSTEM_PROMPT,
+      messages: [
+        { role: "user", content: `Break down this script text:\n\n${chunkText}` }
+      ]
+    })
+  }, {
+    onRetry: (attempt, max, waitSec) => {
+      if (onRetryStatus) onRetryStatus(`Rate limited — retrying in ${waitSec}s (attempt ${attempt}/${max})…`);
+    }
+  });
+
+  if (!response.ok) throw new Error(`API request failed (${response.status})`);
+  const data = await response.json();
+  const textBlock = data.content.find(b => b.type === "text");
+  if (!textBlock) throw new Error("No text response returned.");
+
+  let raw = textBlock.text.trim().replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    const match = raw.match(/\[[\s\S]*\]/);
+    if (match) {
+      try { return JSON.parse(match[0]); } catch (e2) { /* fall through */ }
+    }
+    if (data.stop_reason === 'max_tokens') {
+      throw new Error('A batch response got cut off. Try a shorter script section.');
+    }
+    throw new Error("Could not parse breakdown output for this section.");
+  }
+}
+
+// Deployed backend proxy — keeps the real Anthropic API key server-side.
+// If you're testing this file inside Claude's own preview (not yet deployed),
+// this relative path won't resolve; that's expected until you deploy it
+// (see DEPLOY.md).
+const API_ENDPOINT = '/api/anthropic';
+
+// If your deployment sets an ACCESS_CODE env var on the server, set the same
+// value here so testers' requests are authorized. Leave blank for none.
+const ACCESS_CODE = '';
+
+// Calls fetch with automatic retry on rate-limit (429) or overload (529) responses,
+// using exponential backoff (and honoring a Retry-After header when present).
+async function fetchWithRetry(url, opts, { maxRetries = 5, onRetry = null } = {}) {
+  let attempt = 0;
+  const headers = { ...(opts.headers || {}) };
+  if (ACCESS_CODE) headers['x-access-code'] = ACCESS_CODE;
+  const finalOpts = { ...opts, headers };
+  while (true) {
+    const response = await fetch(url, finalOpts);
+    if (response.ok) return response;
+    const retryable = response.status === 429 || response.status === 529;
+    if (retryable && attempt < maxRetries) {
+      attempt++;
+      const retryAfterHeader = response.headers.get('retry-after');
+      const delayMs = retryAfterHeader
+        ? Math.max(parseFloat(retryAfterHeader) * 1000, 1000)
+        : Math.min(1000 * Math.pow(2, attempt), 20000);
+      if (onRetry) onRetry(attempt, maxRetries, Math.round(delayMs / 1000));
+      await new Promise(r => setTimeout(r, delayMs));
+      continue;
+    }
+    return response; // non-retryable, or out of retries — let caller handle
+  }
+}
+
+const CHUNK_THRESHOLD = 14000; // characters — below this, a single API call is fine
+
+async function runBreakdown() {
+  const text = inputEl.value.trim();
+  if (!text) {
+    statusEl.textContent = 'Paste some script text first.';
+    statusEl.classList.add('error');
+    return;
+  }
+
+  const btn = document.getElementById('parse-btn');
+  btn.disabled = true;
+  statusEl.classList.remove('error');
+  resultsEl.style.display = 'none';
+
+  try {
+    let merged = [];
+
+    if (text.length <= CHUNK_THRESHOLD) {
+      statusEl.textContent = 'Reading scenes, identifying characters, locations, and props…';
+      merged = await callParseAPI(text, (msg) => { statusEl.textContent = msg; });
+    } else {
+      const blocks = splitIntoSceneBlocks(text);
+      const batches = batchSceneBlocks(blocks);
+      statusEl.textContent = `Long script detected — processing in ${batches.length} batches…`;
+
+      for (let i = 0; i < batches.length; i++) {
+        statusEl.textContent = `Reading batch ${i + 1} of ${batches.length} (${merged.length} scenes so far)…`;
+        const batchScenes = await callParseAPI(batches[i], (msg) => { statusEl.textContent = `Batch ${i + 1}/${batches.length}: ${msg}`; });
+        merged = merged.concat(batchScenes);
+        merged.forEach((s, idx) => s.scene_number = idx + 1);
+        lastScenes = merged;
+        if (merged.length) {
+          resultsEl.style.display = 'block';
+          renderScenes(merged);
+        }
+      }
+    }
+
+    merged.forEach((s, idx) => s.scene_number = idx + 1);
+    lastScenes = merged;
+    renderScenes(merged);
+    statusEl.textContent = `Done. ${merged.length} scene${merged.length === 1 ? '' : 's'} extracted.`;
+  } catch (err) {
+    console.error(err);
+    const isNetworkFail = err instanceof TypeError && /fetch/i.test(err.message);
+    const isFileProtocol = window.location.protocol === 'file:';
+    if (isNetworkFail && isFileProtocol) {
+      statusEl.textContent = 'This only works inside the chat preview, not when opened as a downloaded file. Reopen it from the conversation and try again.';
+    } else if (isNetworkFail) {
+      statusEl.textContent = 'Network error reaching the AI. Check your connection and try again.';
+    } else if (/404/.test(err.message)) {
+      statusEl.textContent = 'Backend not found (404). If this is a deployed copy, make sure /api/anthropic.js is deployed alongside this page and ANTHROPIC_API_KEY is set.';
+    } else if (/401/.test(err.message)) {
+      statusEl.textContent = 'Unauthorized (401). Check that the access code matches between the frontend (ACCESS_CODE) and server (ACCESS_CODE env var), or that ANTHROPIC_API_KEY is set correctly.';
+    } else if (/429/.test(err.message)) {
+      statusEl.textContent = 'Still rate limited after several retries. Wait a minute and try again — or try a shorter script section.';
+    } else {
+      statusEl.textContent = 'Error: ' + err.message + '. Try again, or shorten the script.';
+    }
+    statusEl.classList.add('error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
+}
+
+function renderScenes(scenes) {
+  sceneListEl.innerHTML = '';
+  sceneCountEl.textContent = `${scenes.length} scene${scenes.length === 1 ? '' : 's'}`;
+
+  scenes.forEach(sc => {
+    const div = document.createElement('div');
+    div.className = 'scene';
+
+    const castTags = (sc.characters || []).map(c => `<span class="tag cast">${esc(c)}</span>`).join('') || '<span class="empty-field">none</span>';
+    const locTag = sc.location ? `<span class="tag location">${esc(sc.location)}</span>` : '';
+    const timeTag = sc.time_of_day ? `<span class="tag time">${esc(sc.time_of_day)}</span>` : '';
+    const propTags = (sc.props || []).length ? (sc.props || []).map(p => `<span class="tag prop">${esc(p)}</span>`).join('') : '<span class="empty-field">none</span>';
+    const deptTags = (sc.departments || []).length ? (sc.departments || []).map(d => `<span class="tag dept">${esc(d)}</span>`).join('') : '<span class="empty-field">none</span>';
+    const crewTags = (sc.crew || []).length ? (sc.crew || []).map(c => `<span class="tag crew">${esc(c)}</span>`).join('') : '<span class="empty-field">base crew only</span>';
+    const equipTags = (sc.equipment || []).length ? (sc.equipment || []).map(e => `<span class="tag equip">${esc(e)}</span>`).join('') : '<span class="empty-field">standard package</span>';
+
+    const complexity = sc.complexity || '';
+    const complexityClass = complexity === 'High' ? 'high' : complexity === 'Medium' ? 'medium' : 'low';
+    const complexityChip = complexity ? `<span class="chip complexity-${complexityClass}">${esc(complexity)} complexity</span>` : '';
+    const permitChip = sc.permit_flag ? `<span class="chip permit">⚑ ${esc(sc.permit_flag)}</span>` : '';
+
+    const locTypeLine = sc.location_type
+      ? `<div class="loctype-row">Location type: <strong>${esc(sc.location_type)}</strong>
+          <button class="scout-btn" data-loctype="${esc(sc.location_type)}" data-scene="${esc(sc.scene_number)}">Find real locations</button>
+         </div>`
+      : '';
+
+    div.innerHTML = `
+      <div class="scene-num">${esc(sc.scene_number)}</div>
+      <div class="scene-body">
+        <div class="scene-heading">${esc(sc.heading)}</div>
+        <div class="synopsis synopsis-top">${esc(sc.synopsis)}</div>
+        <div class="chips">${locTag}${timeTag}${complexityChip}${permitChip}</div>
+        <div class="field-row"><span class="field-label">Cast</span><div class="field-tags">${castTags}</div></div>
+        <div class="field-row"><span class="field-label">Props</span><div class="field-tags">${propTags}</div></div>
+        <div class="field-row"><span class="field-label">Depts</span><div class="field-tags">${deptTags}</div></div>
+        <div class="field-row"><span class="field-label">Crew</span><div class="field-tags">${crewTags}</div></div>
+        <div class="field-row"><span class="field-label">Gear</span><div class="field-tags">${equipTags}</div></div>
+        ${locTypeLine}
+        <div class="scout-results" id="scout-${esc(sc.scene_number)}"></div>
+      </div>
+    `;
+    sceneListEl.appendChild(div);
+  });
+
+  resultsEl.style.display = 'block';
+  document.querySelectorAll('.scout-btn').forEach(btn => {
+    btn.addEventListener('click', () => findLocations(btn));
+  });
+
+  renderStatBar(scenes);
+  renderCastPanel(scenes);
+  renderLocationsPanel(scenes);
+  renderPropsPanel(scenes);
+  renderDepartmentsPanel(scenes);
+  renderCrewPanel(scenes);
+  renderEquipmentPanel(scenes);
+}
+
+function renderStatBar(scenes) {
+  const bar = document.getElementById('stat-bar');
+  const castSet = new Set();
+  const locSet = new Set();
+  const propSet = new Set();
+  let highComplexity = 0;
+  scenes.forEach(s => {
+    (s.characters || []).forEach(c => castSet.add(c.toUpperCase()));
+    if (s.location) locSet.add(s.location.toUpperCase());
+    (s.props || []).forEach(p => propSet.add(p.toUpperCase()));
+    if (s.complexity === 'High') highComplexity++;
+  });
+  const stats = [
+    [scenes.length, 'Scenes'],
+    [castSet.size, 'Cast'],
+    [locSet.size, 'Locations'],
+    [propSet.size, 'Props'],
+    [highComplexity, 'High Complexity'],
+  ];
+  bar.innerHTML = stats.map(([n, label]) => `
+    <div class="stat-chip">
+      <span class="stat-num">${n}</span>
+      <span class="stat-label">${esc(label)}</span>
+    </div>
+  `).join('');
+}
+
+function sceneChipsHtml(sceneNumbers) {
+  return sceneNumbers.map(n => `<span class="scene-chip" title="Scene ${n}">${n}</span>`).join('');
+}
+
+function renderCastPanel(scenes) {
+  const panel = document.getElementById('panel-cast');
+  const map = {};
+  scenes.forEach(s => {
+    (s.characters || []).forEach(c => {
+      const key = c.toUpperCase();
+      if (!map[key]) map[key] = [];
+      map[key].push(s.scene_number);
+    });
+  });
+  const names = Object.keys(map).sort((a, b) => map[b].length - map[a].length);
+  if (!names.length) { panel.innerHTML = '<div class="cat-empty">No cast identified.</div>'; return; }
+  panel.innerHTML = names.map(name => `
+    <div class="cat-card">
+      <div class="cat-card-head">
+        <span class="cat-name">${esc(name)}</span>
+        <span class="cat-count">${map[name].length} scene${map[name].length === 1 ? '' : 's'}</span>
+      </div>
+      <div class="cat-scenes">${sceneChipsHtml(map[name])}</div>
+    </div>
+  `).join('');
+}
+
+function renderLocationsPanel(scenes) {
+  const panel = document.getElementById('panel-locations');
+  const map = {};
+  scenes.forEach(s => {
+    const key = (s.location || 'UNSPECIFIED').toUpperCase();
+    if (!map[key]) map[key] = { scenes: [], type: s.location_type || '' };
+    map[key].scenes.push(s.scene_number);
+  });
+  const locs = Object.keys(map).sort((a, b) => map[b].scenes.length - map[a].scenes.length);
+  if (!locs.length) { panel.innerHTML = '<div class="cat-empty">No locations identified.</div>'; return; }
+  panel.innerHTML = locs.map(loc => `
+    <div class="cat-card">
+      <div class="cat-card-head">
+        <span class="cat-name">${esc(loc)}</span>
+        <span class="cat-count">${map[loc].scenes.length} scene${map[loc].scenes.length === 1 ? '' : 's'}</span>
+      </div>
+      ${map[loc].type ? `<div class="cat-meta">Type: ${esc(map[loc].type)}</div>` : ''}
+      <div class="cat-scenes">${sceneChipsHtml(map[loc].scenes)}</div>
+    </div>
+  `).join('') + `<div class="scout-disclaimer">Grouping scenes by location helps minimize company moves when building a shoot schedule.</div>`;
+}
+
+function renderPropsPanel(scenes) {
+  const panel = document.getElementById('panel-props');
+  const map = {};
+  scenes.forEach(s => {
+    (s.props || []).forEach(p => {
+      const key = p.toUpperCase();
+      if (!map[key]) map[key] = [];
+      map[key].push(s.scene_number);
+    });
+  });
+  const props = Object.keys(map).sort((a, b) => map[b].length - map[a].length);
+  if (!props.length) { panel.innerHTML = '<div class="cat-empty">No significant props identified.</div>'; return; }
+  panel.innerHTML = props.map(prop => `
+    <div class="cat-card">
+      <div class="cat-card-head">
+        <span class="cat-name">${esc(prop)}</span>
+        <span class="cat-count">${map[prop].length} scene${map[prop].length === 1 ? '' : 's'}</span>
+      </div>
+      <div class="cat-scenes">${sceneChipsHtml(map[prop])}</div>
+    </div>
+  `).join('');
+}
+
+function renderDepartmentsPanel(scenes) {
+  const panel = document.getElementById('panel-departments');
+  const map = {};
+  scenes.forEach(s => {
+    (s.departments || []).forEach(d => {
+      if (!map[d]) map[d] = [];
+      map[d].push(s.scene_number);
+    });
+  });
+  const depts = Object.keys(map).sort((a, b) => map[b].length - map[a].length);
+  if (!depts.length) { panel.innerHTML = '<div class="cat-empty">No special departments flagged for this script.</div>'; return; }
+  panel.innerHTML = depts.map(d => `
+    <div class="cat-card">
+      <div class="cat-card-head">
+        <span class="cat-name">${esc(d)}</span>
+        <span class="cat-count">${map[d].length} scene${map[d].length === 1 ? '' : 's'}</span>
+      </div>
+      <div class="cat-scenes">${sceneChipsHtml(map[d])}</div>
+    </div>
+  `).join('');
+}
+
+function renderCrewPanel(scenes) {
+  const panel = document.getElementById('panel-crew');
+  const map = {};
+  scenes.forEach(s => {
+    (s.crew || []).forEach(c => {
+      if (!map[c]) map[c] = [];
+      map[c].push(s.scene_number);
+    });
+  });
+  const roles = Object.keys(map).sort((a, b) => map[b].length - map[a].length);
+  if (!roles.length) {
+    panel.innerHTML = '<div class="cat-empty">No specialist crew needed beyond a standard base crew (director, DP, 1st AD, gaffer, key grip, sound mixer, script supervisor).</div>';
+    return;
+  }
+  panel.innerHTML = `<div class="cat-meta base-crew-note">Base crew assumed throughout: Director, DP, 1st AD, Gaffer, Key Grip, Sound Mixer, Script Supervisor. Roles below are specialists needed on top of that, scene by scene.</div>` +
+    roles.map(role => `
+    <div class="cat-card">
+      <div class="cat-card-head">
+        <span class="cat-name">${esc(role)}</span>
+        <span class="cat-count">${map[role].length} scene${map[role].length === 1 ? '' : 's'}</span>
+      </div>
+      <div class="cat-scenes">${sceneChipsHtml(map[role])}</div>
+    </div>
+  `).join('');
+}
+
+function renderEquipmentPanel(scenes) {
+  const panel = document.getElementById('panel-equipment');
+  const map = {};
+  scenes.forEach(s => {
+    (s.equipment || []).forEach(e => {
+      const key = e;
+      if (!map[key]) map[key] = [];
+      map[key].push(s.scene_number);
+    });
+  });
+  const items = Object.keys(map).sort((a, b) => map[b].length - map[a].length);
+  if (!items.length) {
+    panel.innerHTML = '<div class="cat-empty">No gear needed beyond a standard camera/lighting/sound package.</div>';
+    return;
+  }
+  panel.innerHTML = `<div class="cat-meta base-crew-note">Standard package assumed throughout: camera, lighting, and sound gear. Items below are additional needs, scene by scene.</div>` +
+    items.map(item => `
+    <div class="cat-card">
+      <div class="cat-card-head">
+        <span class="cat-name">${esc(item)}</span>
+        <span class="cat-count">${map[item].length} scene${map[item].length === 1 ? '' : 's'}</span>
+      </div>
+      <div class="cat-scenes">${sceneChipsHtml(map[item])}</div>
+    </div>
+  `).join('');
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
+    document.getElementById('legend-scenes').style.display = btn.dataset.tab === 'scenes' ? 'flex' : 'none';
+  });
+});
+
+async function findLocations(btn) {
+  const locType = btn.getAttribute('data-loctype');
+  const sceneNum = btn.getAttribute('data-scene');
+  const city = document.getElementById('city-input').value.trim();
+  const target = document.getElementById(`scout-${sceneNum}`);
+
+  if (!city) {
+    target.innerHTML = `<div class="scout-note error">Enter a city or region above first.</div>`;
+    return;
+  }
+
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = 'Searching…';
+  target.innerHTML = `<div class="scout-note">Searching for ${esc(locType)} options near ${esc(city)}…</div>`;
+
+  try {
+    const response = await fetchWithRetry(API_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1500,
+        tools: [{ type: "web_search_20250305", name: "web_search" }],
+        messages: [
+          {
+            role: "user",
+            content: `I'm scouting filming locations for an independent production. Search for real, currently existing "${locType}" venues that can plausibly be rented for filming, near "${city}". Prefer film-friendly rental spaces, studios, or venues that list rental/event availability. After searching, respond with ONLY a raw JSON array (no markdown fences, no commentary), max 4 items, in this exact shape:
+[
+  { "name": "Venue name", "area": "Neighborhood or area", "note": "One short sentence on why it could fit, sourced from what you found" }
+]
+If you can't find real, verifiable options, return an empty array [ ]. Do not invent venues.`
+          }
+        ]
+      })
+    }, {
+      onRetry: (attempt, max, waitSec) => {
+        target.innerHTML = `<div class="scout-note">Rate limited — retrying in ${waitSec}s (attempt ${attempt}/${max})…</div>`;
+      }
+    });
+
+    if (!response.ok) throw new Error(`Search request failed (${response.status})`);
+    const data = await response.json();
+    const textBlocks = data.content.filter(b => b.type === "text").map(b => b.text).join("\n");
+    let raw = textBlocks.trim().replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+
+    let venues;
+    try {
+      venues = JSON.parse(raw);
+    } catch (e) {
+      const match = raw.match(/\[[\s\S]*\]/);
+      venues = match ? JSON.parse(match[0]) : [];
+    }
+
+    if (!venues.length) {
+      target.innerHTML = `<div class="scout-note">No verifiable options found near ${esc(city)}. Try a nearby city or a broader location type.</div>`;
+    } else {
+      target.innerHTML = `<div class="scout-list">` + venues.map(v => `
+        <div class="scout-card">
+          <div class="scout-name">${esc(v.name)}</div>
+          <div class="scout-area">${esc(v.area || '')}</div>
+          <div class="scout-note-text">${esc(v.note || '')}</div>
+        </div>
+      `).join('') + `</div><div class="scout-disclaimer">Starting points for research, not confirmed availability. Verify directly with each venue.</div>`;
+    }
+  } catch (err) {
+    console.error(err);
+    target.innerHTML = `<div class="scout-note error">Search failed: ${esc(err.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+document.getElementById('export-xlsx').addEventListener('click', exportColorCodedXlsx);
+
+// Column color scheme mirrors the app's own tag colors (translated to Excel-safe ARGB hex),
+// echoing the classic industry practice of color-coded scene-strip breakdown sheets.
+const XLSX_COLORS = {
+  headerFill: 'FF16233F',
+  headerFont: 'FFE7EBF3',
+  cast:   'FFFFF3D6',
+  location: 'FFE8F9CC',
+  time:   'FFDCEBFF',
+  props:  'FFFCE0F5',
+  depts:  'FFEAE4FF',
+  crew:   'FFFFE3D2',
+  equip:  'FFE0F7EA',
+  complexityLow:    'FFE8F9CC',
+  complexityMedium: 'FFFFF3D6',
+  complexityHigh:   'FFFCE0F5',
+};
+
+async function exportColorCodedXlsx() {
+  if (!lastScenes.length) return;
+  if (!window['ExcelJS']) {
+    statusEl.textContent = 'Excel export library failed to load. Try refreshing, or use CSV/JSON export instead.';
+    statusEl.classList.add('error');
+    return;
+  }
+
+  const btn = document.getElementById('export-xlsx');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Building Excel file…';
+
+  try {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'rodara';
+    workbook.created = new Date();
+
+    const sheet = workbook.addWorksheet('Breakdown', {
+      views: [{ state: 'frozen', ySplit: 1 }]
+    });
+
+    const columns = [
+      { header: 'Scene #', key: 'scene_number', width: 9 },
+      { header: 'Heading', key: 'heading', width: 28 },
+      { header: 'Location', key: 'location', width: 16, colorKey: 'location' },
+      { header: 'Location Type', key: 'location_type', width: 18, colorKey: 'location' },
+      { header: 'Time of Day', key: 'time_of_day', width: 12, colorKey: 'time' },
+      { header: 'Cast', key: 'characters', width: 24, colorKey: 'cast' },
+      { header: 'Props', key: 'props', width: 26, colorKey: 'props' },
+      { header: 'Departments', key: 'departments', width: 22, colorKey: 'depts' },
+      { header: 'Complexity', key: 'complexity', width: 12 },
+      { header: 'Permit / Specialist Flag', key: 'permit_flag', width: 28 },
+      { header: 'Crew (specialist)', key: 'crew', width: 26, colorKey: 'crew' },
+      { header: 'Equipment', key: 'equipment', width: 30, colorKey: 'equip' },
+      { header: 'Synopsis', key: 'synopsis', width: 40 },
+    ];
+    sheet.columns = columns.map(c => ({ header: c.header, key: c.key, width: c.width }));
+
+    // Header row styling
+    const headerRow = sheet.getRow(1);
+    headerRow.eachCell(cell => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.headerFill } };
+      cell.font = { color: { argb: XLSX_COLORS.headerFont }, bold: true };
+      cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+    });
+    headerRow.height = 20;
+
+    lastScenes.forEach(s => {
+      const row = sheet.addRow({
+        scene_number: s.scene_number,
+        heading: s.heading || '',
+        location: s.location || '',
+        location_type: s.location_type || '',
+        time_of_day: s.time_of_day || '',
+        characters: (s.characters || []).join(', '),
+        props: (s.props || []).join(', '),
+        departments: (s.departments || []).join(', '),
+        complexity: s.complexity || '',
+        permit_flag: s.permit_flag || '',
+        crew: (s.crew || []).join(', '),
+        equipment: (s.equipment || []).join(', '),
+        synopsis: s.synopsis || '',
+      });
+
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        cell.alignment = { vertical: 'top', wrapText: true };
+        const colDef = columns[colNumber - 1];
+        if (colDef && colDef.colorKey && cell.value) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS[colDef.colorKey] } };
+        }
+      });
+
+      const complexityCell = row.getCell('complexity');
+      if (s.complexity === 'High') complexityCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.complexityHigh } };
+      else if (s.complexity === 'Medium') complexityCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.complexityMedium } };
+      else if (s.complexity === 'Low') complexityCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.complexityLow } };
+      complexityCell.font = { bold: true };
+
+      if (s.permit_flag) {
+        row.getCell('permit_flag').font = { color: { argb: 'FFB24A3C' }, bold: true };
+      }
+    });
+
+    sheet.getColumn('heading').font = { bold: true };
+    sheet.autoFilter = { from: 'A1', to: `${String.fromCharCode(64 + columns.length)}1` };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    downloadBinary(buffer, 'rodara_breakdown.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = 'Excel export failed: ' + err.message;
+    statusEl.classList.add('error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+function downloadBinary(buffer, filename, mime) {
+  const blob = new Blob([buffer], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('export-csv').addEventListener('click', () => {
+  if (!lastScenes.length) return;
+  const header = ['Scene #','Heading','INT/EXT','Location','Location Type','Time of Day','Characters','Props','Departments','Complexity','Permit Flag','Crew','Equipment','Synopsis'];
+  const rows = lastScenes.map(s => [
+    s.scene_number,
+    s.heading,
+    s.int_ext,
+    s.location,
+    s.location_type,
+    s.time_of_day,
+    (s.characters||[]).join('; '),
+    (s.props||[]).join('; '),
+    (s.departments||[]).join('; '),
+    s.complexity,
+    s.permit_flag,
+    (s.crew||[]).join('; '),
+    (s.equipment||[]).join('; '),
+    s.synopsis
+  ]);
+  const csv = [header, ...rows].map(r =>
+    r.map(cell => `"${String(cell ?? '').replace(/"/g,'""')}"`).join(',')
+  ).join('\n');
+  downloadFile(csv, 'rodara_breakdown.csv', 'text/csv');
+});
+
+document.getElementById('export-json').addEventListener('click', () => {
+  if (!lastScenes.length) return;
+  downloadFile(JSON.stringify(lastScenes, null, 2), 'rodara_breakdown.json', 'application/json');
+});
+
+function downloadFile(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
