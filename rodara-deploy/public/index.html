@@ -816,7 +816,7 @@ async function runVisionBreakdown(file, triggerBtn) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-6",
+          model: "claude-sonnet-5",
           max_tokens: 4096,
           system: VISION_SYSTEM_PROMPT,
           messages: [
@@ -993,7 +993,7 @@ async function callParseAPI(chunkText, onRetryStatus) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
+      model: "claude-sonnet-5",
       max_tokens: 8192,
       system: TEXT_SYSTEM_PROMPT,
       messages: [
@@ -1034,7 +1034,7 @@ const API_ENDPOINT = '/api/anthropic';
 
 // If your deployment sets an ACCESS_CODE env var on the server, set the same
 // value here so testers' requests are authorized. Leave blank for none.
-const ACCESS_CODE = 'rodara-snIODBW-CNIW';
+const ACCESS_CODE = '';
 
 // Calls fetch with automatic retry on rate-limit (429) or overload (529) responses,
 // using exponential backoff (and honoring a Retry-After header when present).
@@ -1397,7 +1397,7 @@ async function findLocations(btn) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: "claude-sonnet-5",
         max_tokens: 1500,
         tools: [{ type: "web_search_20250305", name: "web_search" }],
         messages: [
