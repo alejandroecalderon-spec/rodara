@@ -46,6 +46,45 @@
     opacity:0.05;
     mix-blend-mode:overlay;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    animation:grainFlicker 6s steps(2) infinite;
+  }
+  @keyframes grainFlicker{
+    0%, 100%{opacity:0.045;}
+    25%{opacity:0.065;}
+    50%{opacity:0.04;}
+    75%{opacity:0.07;}
+  }
+
+  /* Soft projector beam, like light cutting through a dark room from above */
+  .projector-beam{
+    position:fixed;
+    top:-10%;
+    left:50%;
+    transform:translateX(-50%);
+    width:900px;
+    height:130%;
+    z-index:0;
+    pointer-events:none;
+    background:conic-gradient(from 180deg at 50% 0%, transparent 40%, rgba(61,240,224,0.05) 47%, rgba(61,240,224,0.05) 53%, transparent 60%);
+    filter:blur(6px);
+    opacity:0.5;
+  }
+
+  /* Drifting dust motes, like particles caught in a projector beam */
+  .mote{
+    position:fixed;
+    z-index:0;
+    pointer-events:none;
+    border-radius:50%;
+    background:rgba(231,235,243,0.5);
+    box-shadow:0 0 4px rgba(231,235,243,0.3);
+    animation:moteDrift linear infinite;
+  }
+  @keyframes moteDrift{
+    0%{transform:translateY(0) translateX(0); opacity:0;}
+    10%{opacity:0.6;}
+    90%{opacity:0.4;}
+    100%{transform:translateY(-100vh) translateX(20px); opacity:0;}
   }
 
   /* Sprocket-hole strips along the far edges, like 35mm film stock */
@@ -394,6 +433,34 @@
   #city-input:focus{outline:2px solid var(--neon-cyan); outline-offset:1px;}
   .scout-hint{font-size:11.5px; color:var(--ink-soft);}
 
+  #budget-tier{
+    background:var(--white);
+    border:1px solid var(--navy-line);
+    border-radius:999px;
+    padding:7px 16px;
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+  }
+  #budget-tier:focus{outline:2px solid var(--neon-cyan); outline-offset:1px;}
+
+  .budget-low{background:rgba(199,255,77,0.10); color:var(--neon-lime); border:1px solid rgba(199,255,77,0.3);}
+  .budget-medium{background:rgba(255,201,61,0.10); color:var(--neon-amber); border:1px solid rgba(255,201,61,0.3);}
+  .budget-high{background:rgba(255,79,216,0.10); color:var(--neon-magenta); border:1px solid rgba(255,79,216,0.3);}
+  .budget-low-text{color:var(--neon-lime);}
+  .budget-medium-text{color:var(--neon-amber);}
+  .budget-high-text{color:var(--neon-magenta);}
+  .budget-note{
+    font-size:12px;
+    color:var(--ink-soft);
+    background:rgba(255,255,255,0.02);
+    border-left:2px solid var(--neon-amber);
+    padding:6px 10px;
+    margin-top:8px;
+    border-radius:0 8px 8px 0;
+    font-style:italic;
+  }
+
   .scout-results{margin-top:14px;}
   .scout-note{font-size:12.5px; color:var(--ink-soft); font-style:italic;}
   .scout-note.error{color:var(--neon-magenta);}
@@ -561,6 +628,7 @@
 <body>
 <div class="sprockets sprockets-left"></div>
 <div class="sprockets sprockets-right"></div>
+<div class="projector-beam"></div>
 <div class="wrap">
 
   <div class="titleblock">
@@ -607,6 +675,18 @@ Rain hammers the tin roof. MAYA (30s, soaked, jaw set) kicks open a rusted door.
         <span class="scout-hint">Used when you click "Find real locations" on a scene</span>
       </div>
 
+      <div class="scout-bar" id="budget-bar">
+        <label for="budget-tier" class="scout-label">Budget tier</label>
+        <select id="budget-tier">
+          <option value="">Not specified</option>
+          <option value="student">Student / no-budget</option>
+          <option value="micro">Micro-budget indie (under ~$50K)</option>
+          <option value="low">Low-budget indie (~$50K-$1M)</option>
+          <option value="studio">Studio / well-funded</option>
+        </select>
+        <span class="scout-hint">Frames the cost-risk flags below — no dollar estimates are generated</span>
+      </div>
+
       <div class="tabs" id="tabs">
         <button class="tab-btn active" data-tab="scenes">Scenes</button>
         <button class="tab-btn" data-tab="cast">Cast</button>
@@ -615,6 +695,7 @@ Rain hammers the tin roof. MAYA (30s, soaked, jaw set) kicks open a rusted door.
         <button class="tab-btn" data-tab="departments">Departments</button>
         <button class="tab-btn" data-tab="crew">Crew</button>
         <button class="tab-btn" data-tab="equipment">Equipment</button>
+        <button class="tab-btn" data-tab="budget">Budget Risk</button>
       </div>
 
       <div class="legend" id="legend-scenes">
@@ -636,6 +717,7 @@ Rain hammers the tin roof. MAYA (30s, soaked, jaw set) kicks open a rusted door.
       <div class="tab-panel" id="panel-departments"></div>
       <div class="tab-panel" id="panel-crew"></div>
       <div class="tab-panel" id="panel-equipment"></div>
+      <div class="tab-panel" id="panel-budget"></div>
 
       <div class="toolbar-out">
         <button class="btn-ghost" id="export-xlsx">Export Excel (color-coded)</button>
@@ -679,6 +761,23 @@ You don't want to do this, Dennis.
 
 DENNIS
 I really do.`;
+
+// Generate a handful of drifting dust motes, like particles in a projector beam.
+(function createMotes() {
+  const count = window.innerWidth < 700 ? 6 : 14;
+  for (let i = 0; i < count; i++) {
+    const mote = document.createElement('div');
+    mote.className = 'mote';
+    const size = 1 + Math.random() * 2.5;
+    mote.style.width = size + 'px';
+    mote.style.height = size + 'px';
+    mote.style.left = Math.random() * 100 + 'vw';
+    mote.style.bottom = '-10px';
+    mote.style.animationDuration = (18 + Math.random() * 22) + 's';
+    mote.style.animationDelay = (Math.random() * 20) + 's';
+    document.body.appendChild(mote);
+  }
+})();
 
 const statusEl = document.getElementById('status');
 const resultsEl = document.getElementById('results');
@@ -761,6 +860,8 @@ const VISION_SYSTEM_PROMPT = `You are a professional 1st AD performing a script 
     "props": ["FLASHLIGHT", "CHAIN SAW", "REVOLVER"],
     "departments": ["WEAPONS", "STUNTS"],
     "complexity": "Medium",
+    "budget_impact": "Medium",
+    "budget_note": "VFX or specialty costs are often avoidable with a practical alternative on a tight budget.",
     "permit_flag": "Possible weapons permit / armorer needed",
     "crew": ["Armorer", "Stunt Coordinator"],
     "equipment": ["Blank-firing prop weapons", "Padded stunt rigging"],
@@ -775,7 +876,9 @@ Field rules:
 - characters: only named or clearly present characters.
 - props: only physically significant props mentioned in action lines.
 - departments: pick zero or more from: STUNTS, WEAPONS, SFX/PYRO, VFX, ANIMALS, MINORS, WATER/MARINE, VEHICLES, INTIMACY, CROWD/EXTRAS, NIGHT EXTERIOR, PRACTICAL FX. Empty array if none apply.
-- complexity: "Low", "Medium", or "High".
+- complexity: "Low", "Medium", or "High" — how hard this scene is to physically shoot (logistics, cast, weather).
+- budget_impact: "Low", "Medium", or "High" — a RELATIVE cost-risk flag, not a dollar estimate. Driven by things like VFX, animals, stunts, crowd/extras, specialty equipment, permits, or a practical-vs-VFX decision (e.g. an explosion, a creature, a destroyed set) that could swing cost heavily depending on how it's executed. Do not invent specific dollar amounts anywhere.
+- budget_note: ONLY include a non-empty note when there's a genuine practical-vs-VFX/effects tradeoff worth the filmmaker consciously deciding on (e.g. "Could be a practical squib + junk car instead of VFX — often cheaper for a small production" or "Creature could be a costume/puppet instead of CG for a tight budget"). Empty string otherwise — don't force a note onto every scene.
 - permit_flag: short phrase or empty string.
 - crew: specialist crew roles this scene needs BEYOND a standard base crew (director, DP, 1st AD, gaffer, key grip, sound mixer, script supervisor — don't list those). Only specialists tied to what the scene requires, e.g. Stunt Coordinator, Armorer, SFX Supervisor/Safety Officer, Animal Wrangler, Studio Teacher/Guardian, Intimacy Coordinator, Marine/Water Safety Coordinator, Generator Operator, VFX Supervisor. Empty array if none.
 - equipment: specific gear beyond standard camera/lighting/sound, e.g. "Rain rig / wet-weather gear", "Blank-firing prop weapons", "Padded stunt rigging / crash mats", "Generator (night exterior)", "Green screen", "Harness and safety cables". Empty array if none.
@@ -936,6 +1039,8 @@ const TEXT_SYSTEM_PROMPT = `You are a professional 1st AD performing a script br
     "props": ["FLASHLIGHT", "CHAIN SAW", "REVOLVER"],
     "departments": ["WEAPONS", "STUNTS"],
     "complexity": "Medium",
+    "budget_impact": "Medium",
+    "budget_note": "VFX or specialty costs are often avoidable with a practical alternative on a tight budget.",
     "permit_flag": "Possible weapons permit / armorer needed",
     "crew": ["Armorer", "Stunt Coordinator"],
     "equipment": ["Blank-firing prop weapons", "Padded stunt rigging"],
@@ -951,6 +1056,8 @@ Field rules:
 - props: only physically significant props mentioned in action lines (skip incidental scenery).
 - departments: pick zero or more from this fixed list based on what the scene actually requires: STUNTS, WEAPONS, SFX/PYRO, VFX, ANIMALS, MINORS, WATER/MARINE, VEHICLES, INTIMACY, CROWD/EXTRAS, NIGHT EXTERIOR, PRACTICAL FX. Leave empty array if none apply — don't force it.
 - complexity: "Low", "Medium", or "High" — a rough estimate of how hard this scene is to shoot (cast count, stunts, location logistics, weather dependency).
+- budget_impact: "Low", "Medium", or "High" — a RELATIVE cost-risk flag, not a dollar estimate. Driven by VFX, animals, stunts, crowd/extras, specialty equipment, permits, or a practical-vs-VFX decision (an explosion, a creature, a destroyed set) that could swing cost heavily depending on execution. Never invent specific dollar amounts.
+- budget_note: ONLY include a non-empty note when there's a genuine practical-vs-VFX/effects tradeoff worth the filmmaker consciously deciding on (e.g. "Could be a practical squib + junk car instead of VFX — often cheaper for a small production"). Empty string otherwise.
 - permit_flag: one short phrase noting any likely permit, insurance, or specialist need, or empty string if nothing notable.
 - crew: specialist crew roles this scene needs BEYOND a standard base crew (director, DP, 1st AD, gaffer, key grip, sound mixer, script supervisor — don't list those). Only specialists tied to what the scene requires. Empty array if none.
 - equipment: specific gear beyond standard camera/lighting/sound package. Empty array if none.
@@ -1154,6 +1261,11 @@ function renderScenes(scenes) {
     const complexityChip = complexity ? `<span class="chip complexity-${complexityClass}">${esc(complexity)} complexity</span>` : '';
     const permitChip = sc.permit_flag ? `<span class="chip permit">⚑ ${esc(sc.permit_flag)}</span>` : '';
 
+    const budgetImpact = sc.budget_impact || '';
+    const budgetClass = budgetImpact === 'High' ? 'high' : budgetImpact === 'Medium' ? 'medium' : 'low';
+    const budgetChip = budgetImpact ? `<span class="chip budget-${budgetClass}">${esc(budgetImpact)} budget risk</span>` : '';
+    const budgetNoteHtml = sc.budget_note ? `<div class="budget-note">💡 ${esc(sc.budget_note)}</div>` : '';
+
     const locTypeLine = sc.location_type
       ? `<div class="loctype-row">Location type: <strong>${esc(sc.location_type)}</strong>
           <button class="scout-btn" data-loctype="${esc(sc.location_type)}" data-scene="${esc(sc.scene_number)}">Find real locations</button>
@@ -1165,12 +1277,13 @@ function renderScenes(scenes) {
       <div class="scene-body">
         <div class="scene-heading">${esc(sc.heading)}</div>
         <div class="synopsis synopsis-top">${esc(sc.synopsis)}</div>
-        <div class="chips">${locTag}${timeTag}${complexityChip}${permitChip}</div>
+        <div class="chips">${locTag}${timeTag}${complexityChip}${budgetChip}${permitChip}</div>
         <div class="field-row"><span class="field-label">Cast</span><div class="field-tags">${castTags}</div></div>
         <div class="field-row"><span class="field-label">Props</span><div class="field-tags">${propTags}</div></div>
         <div class="field-row"><span class="field-label">Depts</span><div class="field-tags">${deptTags}</div></div>
         <div class="field-row"><span class="field-label">Crew</span><div class="field-tags">${crewTags}</div></div>
         <div class="field-row"><span class="field-label">Gear</span><div class="field-tags">${equipTags}</div></div>
+        ${budgetNoteHtml}
         ${locTypeLine}
         <div class="scout-results" id="scout-${esc(sc.scene_number)}"></div>
       </div>
@@ -1190,6 +1303,7 @@ function renderScenes(scenes) {
   renderDepartmentsPanel(scenes);
   renderCrewPanel(scenes);
   renderEquipmentPanel(scenes);
+  renderBudgetPanel(scenes);
 }
 
 function renderStatBar(scenes) {
@@ -1198,11 +1312,13 @@ function renderStatBar(scenes) {
   const locSet = new Set();
   const propSet = new Set();
   let highComplexity = 0;
+  let highBudgetRisk = 0;
   scenes.forEach(s => {
     (s.characters || []).forEach(c => castSet.add(c.toUpperCase()));
     if (s.location) locSet.add(s.location.toUpperCase());
     (s.props || []).forEach(p => propSet.add(p.toUpperCase()));
     if (s.complexity === 'High') highComplexity++;
+    if (s.budget_impact === 'High') highBudgetRisk++;
   });
   const stats = [
     [scenes.length, 'Scenes'],
@@ -1210,6 +1326,7 @@ function renderStatBar(scenes) {
     [locSet.size, 'Locations'],
     [propSet.size, 'Props'],
     [highComplexity, 'High Complexity'],
+    [highBudgetRisk, 'High Budget Risk'],
   ];
   bar.innerHTML = stats.map(([n, label]) => `
     <div class="stat-chip">
@@ -1366,6 +1483,59 @@ function renderEquipmentPanel(scenes) {
   `).join('');
 }
 
+const BUDGET_TIER_LABELS = {
+  student: 'Student / no-budget',
+  micro: 'Micro-budget indie (under ~$50K)',
+  low: 'Low-budget indie (~$50K-$1M)',
+  studio: 'Studio / well-funded',
+};
+
+function renderBudgetPanel(scenes) {
+  const panel = document.getElementById('panel-budget');
+  const tier = document.getElementById('budget-tier').value;
+
+  const byRisk = { High: [], Medium: [], Low: [] };
+  scenes.forEach(s => {
+    const level = s.budget_impact || 'Low';
+    if (byRisk[level]) byRisk[level].push(s);
+  });
+
+  const notesScenes = scenes.filter(s => s.budget_note);
+
+  const disclaimer = `<div class="cat-meta base-crew-note">
+    These are relative cost-risk flags based on what each scene requires (VFX, stunts, animals, permits, crowds, etc.) — not dollar estimates. Real costs depend on your region, vendors, and crew rates, which this tool has no visibility into.
+    ${tier ? `Framed for a <strong>${esc(BUDGET_TIER_LABELS[tier])}</strong> production.` : 'Select a budget tier above for more tailored framing.'}
+  </div>`;
+
+  if (!scenes.length) {
+    panel.innerHTML = disclaimer + '<div class="cat-empty">No scenes yet.</div>';
+    return;
+  }
+
+  const riskSection = ['High', 'Medium', 'Low'].map(level => {
+    const list = byRisk[level];
+    if (!list.length) return '';
+    const cls = level === 'High' ? 'high' : level === 'Medium' ? 'medium' : 'low';
+    return `
+      <div class="cat-card">
+        <div class="cat-card-head">
+          <span class="cat-name budget-${cls}-text">${esc(level)} budget risk</span>
+          <span class="cat-count">${list.length} scene${list.length === 1 ? '' : 's'}</span>
+        </div>
+        <div class="cat-scenes">${sceneChipsHtml(list.map(s => s.scene_number))}</div>
+      </div>`;
+  }).join('');
+
+  const notesSection = notesScenes.length ? `
+    <div class="cat-card">
+      <div class="cat-card-head"><span class="cat-name">Practical vs. VFX decisions worth making early</span></div>
+      ${notesScenes.map(s => `<div class="budget-note" style="margin-bottom:8px;">Scene ${s.scene_number}: ${esc(s.budget_note)}</div>`).join('')}
+    </div>` : '';
+
+  panel.innerHTML = disclaimer + riskSection + notesSection;
+}
+
+
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1374,6 +1544,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
     document.getElementById('legend-scenes').style.display = btn.dataset.tab === 'scenes' ? 'flex' : 'none';
   });
+});
+
+document.getElementById('budget-tier').addEventListener('change', () => {
+  if (lastScenes.length) renderBudgetPanel(lastScenes);
 });
 
 async function findLocations(btn) {
@@ -1467,6 +1641,9 @@ const XLSX_COLORS = {
   complexityLow:    'FFE8F9CC',
   complexityMedium: 'FFFFF3D6',
   complexityHigh:   'FFFCE0F5',
+  budgetLow:    'FFE8F9CC',
+  budgetMedium: 'FFFFF3D6',
+  budgetHigh:   'FFFCE0F5',
 };
 
 async function exportColorCodedXlsx() {
@@ -1501,6 +1678,8 @@ async function exportColorCodedXlsx() {
       { header: 'Props', key: 'props', width: 26, colorKey: 'props' },
       { header: 'Departments', key: 'departments', width: 22, colorKey: 'depts' },
       { header: 'Complexity', key: 'complexity', width: 12 },
+      { header: 'Budget Risk', key: 'budget_impact', width: 14 },
+      { header: 'Budget Note', key: 'budget_note', width: 34 },
       { header: 'Permit / Specialist Flag', key: 'permit_flag', width: 28 },
       { header: 'Crew (specialist)', key: 'crew', width: 26, colorKey: 'crew' },
       { header: 'Equipment', key: 'equipment', width: 30, colorKey: 'equip' },
@@ -1528,6 +1707,8 @@ async function exportColorCodedXlsx() {
         props: (s.props || []).join(', '),
         departments: (s.departments || []).join(', '),
         complexity: s.complexity || '',
+        budget_impact: s.budget_impact || '',
+        budget_note: s.budget_note || '',
         permit_flag: s.permit_flag || '',
         crew: (s.crew || []).join(', '),
         equipment: (s.equipment || []).join(', '),
@@ -1547,6 +1728,12 @@ async function exportColorCodedXlsx() {
       else if (s.complexity === 'Medium') complexityCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.complexityMedium } };
       else if (s.complexity === 'Low') complexityCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.complexityLow } };
       complexityCell.font = { bold: true };
+
+      const budgetCell = row.getCell('budget_impact');
+      if (s.budget_impact === 'High') budgetCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.budgetHigh } };
+      else if (s.budget_impact === 'Medium') budgetCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.budgetMedium } };
+      else if (s.budget_impact === 'Low') budgetCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.budgetLow } };
+      budgetCell.font = { bold: true };
 
       if (s.permit_flag) {
         row.getCell('permit_flag').font = { color: { argb: 'FFB24A3C' }, bold: true };
@@ -1582,7 +1769,7 @@ function downloadBinary(buffer, filename, mime) {
 
 document.getElementById('export-csv').addEventListener('click', () => {
   if (!lastScenes.length) return;
-  const header = ['Scene #','Heading','INT/EXT','Location','Location Type','Time of Day','Characters','Props','Departments','Complexity','Permit Flag','Crew','Equipment','Synopsis'];
+  const header = ['Scene #','Heading','INT/EXT','Location','Location Type','Time of Day','Characters','Props','Departments','Complexity','Budget Risk','Budget Note','Permit Flag','Crew','Equipment','Synopsis'];
   const rows = lastScenes.map(s => [
     s.scene_number,
     s.heading,
@@ -1594,6 +1781,8 @@ document.getElementById('export-csv').addEventListener('click', () => {
     (s.props||[]).join('; '),
     (s.departments||[]).join('; '),
     s.complexity,
+    s.budget_impact,
+    s.budget_note,
     s.permit_flag,
     (s.crew||[]).join('; '),
     (s.equipment||[]).join('; '),
