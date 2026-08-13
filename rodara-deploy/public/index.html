@@ -8,6 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root{
     --bg:#080B12;
@@ -274,6 +276,41 @@
   textarea::placeholder{color:#4A5268;}
   textarea:focus{outline:2px solid var(--neon-cyan); outline-offset:1px;}
 
+  .view-nav{
+    display:flex;
+    gap:10px;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+  }
+  .view-nav-btn{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    padding:10px 20px;
+    border-radius:999px;
+    border:1px solid var(--navy-line);
+    background:transparent;
+    color:var(--ink-soft);
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .view-nav-btn:hover:not(:disabled){color:var(--ink); border-color:var(--ink-soft);}
+  .view-nav-btn.active{
+    background:var(--neon-cyan);
+    color:#04211D;
+    border-color:var(--neon-cyan);
+    box-shadow:0 0 14px rgba(61,240,224,0.3);
+  }
+  .view-nav-btn:disabled{opacity:0.35; cursor:not-allowed;}
+  .view-panel{display:none;}
+  .view-panel.active{display:block;}
+  .upload-btn-ghost{
+    border-color:rgba(111,224,168,0.4);
+    background:rgba(111,224,168,0.06);
+    color:var(--neon-lime);
+  }
+  .upload-btn-ghost:hover{background:rgba(111,224,168,0.15);}
+
   .upload-row{
     display:flex;
     align-items:center;
@@ -397,6 +434,7 @@
     justify-content:center;
   }
   .scene-body{flex:1; min-width:0;}
+  .scene-card-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
   .scene-heading{
     font-family:'Courier Prime', monospace;
     font-weight:700;
@@ -405,6 +443,54 @@
     margin-bottom:8px;
     color:var(--ink);
   }
+  .edit-scene-btn{
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    font-weight:600;
+    padding:5px 12px;
+    border-radius:999px;
+    border:1px solid var(--navy-line);
+    background:transparent;
+    color:var(--ink-soft);
+    cursor:pointer;
+    flex-shrink:0;
+    white-space:nowrap;
+  }
+  .edit-scene-btn:hover{color:var(--neon-cyan); border-color:var(--neon-cyan);}
+  .scene-edited-flash{animation:editFlash 0.9s ease;}
+  @keyframes editFlash{
+    0%{box-shadow:0 0 0 2px rgba(111,224,168,0.6);}
+    100%{box-shadow:0 0 0 0 rgba(111,224,168,0);}
+  }
+  .edit-field-row{margin-bottom:12px;}
+  .edit-field-row label{
+    display:block;
+    font-family:'Courier Prime', monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--neon-cyan);
+    margin-bottom:5px;
+  }
+  .edit-input{
+    width:100%;
+    background:var(--white);
+    border:1px solid var(--navy-line);
+    border-radius:10px;
+    padding:8px 12px;
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+  }
+  select.edit-input{cursor:pointer;}
+  textarea.edit-input{resize:vertical; font-family:'Inter',sans-serif;}
+  .edit-input:focus{outline:2px solid var(--neon-cyan); outline-offset:1px;}
+  .edit-field-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:0 14px;
+  }
+  .edit-actions{display:flex; gap:10px; margin-top:6px;}
   .tags{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;}
 
   .field-row{
@@ -768,6 +854,30 @@
     letter-spacing:.05em;
   }
 
+  .feedback-btn{
+    position:fixed;
+    bottom:22px;
+    right:22px;
+    z-index:500;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    padding:12px 20px;
+    border-radius:999px;
+    background:var(--neon-cyan);
+    color:#04211D;
+    text-decoration:none;
+    box-shadow:0 0 20px rgba(61,240,224,0.35), 0 4px 14px rgba(0,0,0,0.4);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .feedback-btn:hover{
+    transform:translateY(-2px);
+    box-shadow:0 0 28px rgba(61,240,224,0.5), 0 6px 18px rgba(0,0,0,0.45);
+  }
+  @media (max-width:640px){
+    .feedback-btn{bottom:14px; right:14px; padding:10px 16px; font-size:12px;}
+  }
+
   @media (max-width:640px){
     .wrap{padding:28px 14px 60px;}
     .titleblock{padding:20px 8px 28px;}
@@ -952,21 +1062,32 @@
   </div>
 
   <div class="page">
+    <div class="view-nav" id="view-nav">
+      <button class="view-nav-btn active" data-view="input">① Script Input</button>
+      <button class="view-nav-btn" data-view="results" id="results-nav-btn" disabled>② Breakdown Results</button>
+    </div>
+
+    <div class="view-panel active" id="view-input">
     <label for="script-input">01 · Screenplay Text</label>
 
     <div class="upload-row">
       <label class="upload-btn" for="file-input">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Upload PDF or .txt
+        Upload PDF, .fdx, or .txt
       </label>
-      <input type="file" id="file-input" accept=".pdf,.txt" hidden />
+      <input type="file" id="file-input" accept=".pdf,.txt,.fdx" hidden />
+      <label class="upload-btn upload-btn-ghost" for="project-input">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        Load Saved Project
+      </label>
+      <input type="file" id="project-input" accept=".json" hidden />
       <span class="upload-filename" id="upload-filename"></span>
     </div>
     <div class="upload-status" id="upload-status"></div>
 
     <textarea id="script-input" placeholder="INT. WAREHOUSE - NIGHT
 
-Rain hammers the tin roof. MAYA (30s, soaked, jaw set) kicks open a rusted door...&#10;&#10;Paste as much of your script as you'd like, or upload a PDF/.txt file above."></textarea>
+Rain hammers the tin roof. MAYA (30s, soaked, jaw set) kicks open a rusted door...&#10;&#10;Paste as much of your script as you'd like, or upload a PDF/.fdx/.txt file above."></textarea>
 
     <div class="row">
       <button class="btn-primary" id="parse-btn">Break Down Script</button>
@@ -974,6 +1095,7 @@ Rain hammers the tin roof. MAYA (30s, soaked, jaw set) kicks open a rusted door.
       <span class="sample-link" id="sample-btn">Try a sample scene</span>
     </div>
     <div class="status" id="status"></div>
+    </div>
 
     <div class="results" id="results" style="display:none;">
       <div class="results-head">
@@ -1046,13 +1168,19 @@ Rain hammers the tin roof. MAYA (30s, soaked, jaw set) kicks open a rusted door.
 
       <div class="toolbar-out">
         <button class="btn-ghost" id="export-xlsx">Export Excel (color-coded)</button>
+        <button class="btn-ghost" id="export-pdf">Export PDF</button>
         <button class="btn-ghost" id="export-csv">Export CSV</button>
         <button class="btn-ghost" id="export-json">Export JSON</button>
+        <button class="btn-ghost" id="save-project">Save Project</button>
       </div>
     </div>
   </div>
 
   <footer>RODARA · V1 PROTOTYPE · SCRIPT BREAKDOWN ENGINE</footer>
+
+  <a id="feedback-btn" class="feedback-btn" href="mailto:youremail@example.com?subject=rodara%20feedback&body=What%20I%20tried%3A%0A%0AWhat%20worked%3A%0A%0AWhat%20didn%27t%3A%0A%0A" title="Send feedback">
+    💬 Feedback
+  </a>
 </div>
 
 <script>
@@ -1105,6 +1233,40 @@ I really do.`;
 })();
 
 const statusEl = document.getElementById('status');
+
+// --- Input / Results view switching ---
+function switchView(view) {
+  const inputPanel = document.getElementById('view-input');
+  const resultsBtn = document.getElementById('results-nav-btn');
+  document.querySelectorAll('.view-nav-btn').forEach(b => b.classList.remove('active'));
+  if (view === 'results') {
+    inputPanel.classList.remove('active');
+    resultsEl.style.display = 'block';
+    document.querySelector('.view-nav-btn[data-view="results"]').classList.add('active');
+    resultsBtn.disabled = false;
+  } else {
+    inputPanel.classList.add('active');
+    resultsEl.style.display = 'none';
+    document.querySelector('.view-nav-btn[data-view="input"]').classList.add('active');
+  }
+  window.scrollTo({ top: document.querySelector('.page').offsetTop - 20, behavior: 'smooth' });
+}
+
+document.querySelectorAll('.view-nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.disabled) return;
+    switchView(btn.dataset.view);
+  });
+});
+
+// Shows the results panel and enables/activates the Results nav tab —
+// call this anywhere results become available instead of touching
+// resultsEl.style.display directly, so the view-nav stays in sync.
+function showResults() {
+  document.getElementById('results-nav-btn').disabled = false;
+  switchView('results');
+}
+
 const resultsEl = document.getElementById('results');
 const sceneListEl = document.getElementById('scene-list');
 const sceneCountEl = document.getElementById('scene-count');
@@ -1129,8 +1291,11 @@ fileInput.addEventListener('change', async (e) => {
 
   try {
     let text = '';
-    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+    const lowerName = file.name.toLowerCase();
+    if (file.type === 'application/pdf' || lowerName.endsWith('.pdf')) {
       text = await extractPdfText(file);
+    } else if (lowerName.endsWith('.fdx')) {
+      text = await extractFdxText(file);
     } else {
       text = await file.text();
     }
@@ -1214,7 +1379,7 @@ Field rules:
 async function runVisionBreakdown(file, triggerBtn) {
   triggerBtn.disabled = true;
   triggerBtn.textContent = 'Loading PDF pages…';
-  resultsEl.style.display = 'block';
+  showResults();
   sceneListEl.innerHTML = '';
   sceneCountEl.textContent = '';
   statusEl.classList.remove('error');
@@ -1279,6 +1444,7 @@ async function runVisionBreakdown(file, triggerBtn) {
         merged = merged.concat(batchScenes);
         merged.forEach((s, idx) => s.scene_number = idx + 1);
         lastScenes = merged;
+        showResults();
         renderScenes(merged);
       }
     }
@@ -1298,6 +1464,41 @@ async function runVisionBreakdown(file, triggerBtn) {
 
 function vernacular(n) {
   return `${n} scene${n === 1 ? '' : 's'}`;
+}
+
+// Extracts screenplay text from a Final Draft (.fdx) file, which is XML.
+// Final Draft explicitly tags each paragraph's type (e.g. "Scene Heading",
+// "Action", "Character", "Dialogue"), so we reconstruct plain text with real
+// line breaks between paragraphs — this feeds straight into the same
+// scene-splitting pipeline used for PDF/txt text.
+async function extractFdxText(file) {
+  const xmlText = await file.text();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xmlText, 'application/xml');
+
+  const parserError = doc.querySelector('parsererror');
+  if (parserError) {
+    throw new Error('Could not read this .fdx file — it may be corrupted or not a valid Final Draft file.');
+  }
+
+  const paragraphs = doc.querySelectorAll('Paragraph');
+  if (!paragraphs.length) {
+    throw new Error('No screenplay content found in this .fdx file.');
+  }
+
+  let result = '';
+  paragraphs.forEach(p => {
+    const type = p.getAttribute('Type') || '';
+    const textNodes = p.querySelectorAll('Text');
+    let line = '';
+    textNodes.forEach(t => { line += t.textContent; });
+    line = line.trim();
+    if (!line) return;
+    result += line + '\n';
+    if (type === 'Scene Heading') result += '\n';
+  });
+
+  return result;
 }
 
 async function extractPdfText(file) {
@@ -1612,7 +1813,7 @@ async function runBreakdown() {
         merged.forEach((s, idx) => s.scene_number = idx + 1);
         lastScenes = merged;
         if (merged.length) {
-          resultsEl.style.display = 'block';
+          showResults();
           renderScenes(merged);
         }
       }
@@ -1620,6 +1821,7 @@ async function runBreakdown() {
 
     merged.forEach((s, idx) => s.scene_number = idx + 1);
     lastScenes = merged;
+    showResults();
     renderScenes(merged);
     statusEl.textContent = `Done. ${merged.length} scene${merged.length === 1 ? '' : 's'} extracted.`;
   } catch (err) {
@@ -1654,6 +1856,201 @@ function esc(s) {
   return d.innerHTML;
 }
 
+// Builds the read-only display HTML for one scene card.
+function sceneDisplayHtml(sc) {
+  const castTags = (sc.characters || []).map(c => `<span class="tag cast">${esc(c)}</span>`).join('') || '<span class="empty-field">none</span>';
+  const locTag = sc.location ? `<span class="tag location">${esc(sc.location)}</span>` : '';
+  const timeTag = sc.time_of_day ? `<span class="tag time">${esc(sc.time_of_day)}</span>` : '';
+  const propTags = (sc.props || []).length ? (sc.props || []).map(p => `<span class="tag prop">${esc(p)}</span>`).join('') : '<span class="empty-field">none</span>';
+  const deptTags = (sc.departments || []).length ? (sc.departments || []).map(d => `<span class="tag dept">${esc(d)}</span>`).join('') : '<span class="empty-field">none</span>';
+  const crewTags = (sc.crew || []).length ? (sc.crew || []).map(c => `<span class="tag crew">${esc(c)}</span>`).join('') : '<span class="empty-field">base crew only</span>';
+  const equipTags = (sc.equipment || []).length ? (sc.equipment || []).map(e => `<span class="tag equip">${esc(e)}</span>`).join('') : '<span class="empty-field">standard package</span>';
+
+  const complexity = sc.complexity || '';
+  const complexityClass = complexity === 'High' ? 'high' : complexity === 'Medium' ? 'medium' : 'low';
+  const complexityChip = complexity ? `<span class="chip complexity-${complexityClass}">${esc(complexity)} complexity</span>` : '';
+  const permitChip = sc.permit_flag ? `<span class="chip permit">⚑ ${esc(sc.permit_flag)}</span>` : '';
+
+  const budgetImpact = sc.budget_impact || '';
+  const budgetClass = budgetImpact === 'High' ? 'high' : budgetImpact === 'Medium' ? 'medium' : 'low';
+  const budgetChip = budgetImpact ? `<span class="chip budget-${budgetClass}">${esc(budgetImpact)} budget risk</span>` : '';
+  const budgetNoteHtml = sc.budget_note ? `<div class="budget-note">💡 ${esc(sc.budget_note)}</div>` : '';
+
+  const locTypeLine = sc.location_type
+    ? `<div class="loctype-row">Location type: <strong>${esc(sc.location_type)}</strong>
+        <button class="scout-btn" data-loctype="${esc(sc.location_type)}" data-scene="${esc(sc.scene_number)}">Find real locations</button>
+       </div>`
+    : '';
+
+  return `
+    <div class="scene-num">${esc(sc.scene_number)}</div>
+    <div class="scene-body">
+      <div class="scene-card-top">
+        <div class="scene-heading">${esc(sc.heading)}</div>
+        <button class="edit-scene-btn" data-scene="${esc(sc.scene_number)}" title="Edit this scene">✎ Edit</button>
+      </div>
+      <div class="synopsis synopsis-top">${esc(sc.synopsis)}</div>
+      <div class="chips">${locTag}${timeTag}${complexityChip}${budgetChip}${permitChip}</div>
+      <div class="field-row"><span class="field-label">Cast</span><div class="field-tags">${castTags}</div></div>
+      <div class="field-row"><span class="field-label">Props</span><div class="field-tags">${propTags}</div></div>
+      <div class="field-row"><span class="field-label">Depts</span><div class="field-tags">${deptTags}</div></div>
+      <div class="field-row"><span class="field-label">Crew</span><div class="field-tags">${crewTags}</div></div>
+      <div class="field-row"><span class="field-label">Gear</span><div class="field-tags">${equipTags}</div></div>
+      ${budgetNoteHtml}
+      ${locTypeLine}
+      <div class="scout-results" id="scout-${esc(sc.scene_number)}"></div>
+    </div>
+  `;
+}
+
+// Builds the editable form HTML for one scene card.
+function sceneEditHtml(sc) {
+  const joinArr = (arr) => (arr || []).join(', ');
+  const opt = (val, current) => `<option value="${val}" ${current === val ? 'selected' : ''}>${val}</option>`;
+  return `
+    <div class="scene-num">${esc(sc.scene_number)}</div>
+    <div class="scene-body">
+      <div class="edit-field-row">
+        <label>Heading</label>
+        <input type="text" class="edit-input" data-field="heading" value="${esc(sc.heading || '')}" />
+      </div>
+      <div class="edit-field-row">
+        <label>Synopsis</label>
+        <textarea class="edit-input" data-field="synopsis" rows="2">${esc(sc.synopsis || '')}</textarea>
+      </div>
+      <div class="edit-field-grid">
+        <div class="edit-field-row">
+          <label>Location</label>
+          <input type="text" class="edit-input" data-field="location" value="${esc(sc.location || '')}" />
+        </div>
+        <div class="edit-field-row">
+          <label>Location Type</label>
+          <input type="text" class="edit-input" data-field="location_type" value="${esc(sc.location_type || '')}" />
+        </div>
+        <div class="edit-field-row">
+          <label>Time of Day</label>
+          <input type="text" class="edit-input" data-field="time_of_day" value="${esc(sc.time_of_day || '')}" />
+        </div>
+        <div class="edit-field-row">
+          <label>Complexity</label>
+          <select class="edit-input" data-field="complexity">
+            <option value="">—</option>
+            ${opt('Low', sc.complexity)}${opt('Medium', sc.complexity)}${opt('High', sc.complexity)}
+          </select>
+        </div>
+        <div class="edit-field-row">
+          <label>Budget Risk</label>
+          <select class="edit-input" data-field="budget_impact">
+            <option value="">—</option>
+            ${opt('Low', sc.budget_impact)}${opt('Medium', sc.budget_impact)}${opt('High', sc.budget_impact)}
+          </select>
+        </div>
+        <div class="edit-field-row">
+          <label>Permit / Specialist Flag</label>
+          <input type="text" class="edit-input" data-field="permit_flag" value="${esc(sc.permit_flag || '')}" />
+        </div>
+      </div>
+      <div class="edit-field-row">
+        <label>Cast (comma-separated)</label>
+        <input type="text" class="edit-input" data-field="characters" value="${esc(joinArr(sc.characters))}" />
+      </div>
+      <div class="edit-field-row">
+        <label>Props (comma-separated)</label>
+        <input type="text" class="edit-input" data-field="props" value="${esc(joinArr(sc.props))}" />
+      </div>
+      <div class="edit-field-row">
+        <label>Departments (comma-separated)</label>
+        <input type="text" class="edit-input" data-field="departments" value="${esc(joinArr(sc.departments))}" />
+      </div>
+      <div class="edit-field-row">
+        <label>Crew (comma-separated)</label>
+        <input type="text" class="edit-input" data-field="crew" value="${esc(joinArr(sc.crew))}" />
+      </div>
+      <div class="edit-field-row">
+        <label>Equipment (comma-separated)</label>
+        <input type="text" class="edit-input" data-field="equipment" value="${esc(joinArr(sc.equipment))}" />
+      </div>
+      <div class="edit-field-row">
+        <label>Budget Note</label>
+        <input type="text" class="edit-input" data-field="budget_note" value="${esc(sc.budget_note || '')}" />
+      </div>
+      <div class="edit-actions">
+        <button class="btn-primary save-scene-btn" data-scene="${esc(sc.scene_number)}">Save</button>
+        <button class="btn-ghost cancel-scene-btn" data-scene="${esc(sc.scene_number)}">Cancel</button>
+      </div>
+    </div>
+  `;
+}
+
+function findSceneByNumber(sceneNum) {
+  return lastScenes.find(s => String(s.scene_number) === String(sceneNum));
+}
+
+function enterEditMode(sceneNum) {
+  const sc = findSceneByNumber(sceneNum);
+  if (!sc) return;
+  const card = document.getElementById(`scene-card-${sceneNum}`);
+  card.innerHTML = sceneEditHtml(sc);
+  card.querySelector('.save-scene-btn').addEventListener('click', () => saveSceneEdit(sceneNum));
+  card.querySelector('.cancel-scene-btn').addEventListener('click', () => {
+    card.innerHTML = sceneDisplayHtml(sc);
+    rewireCard(card);
+  });
+}
+
+function rewireCard(card) {
+  card.querySelectorAll('.scout-btn').forEach(btn => btn.addEventListener('click', () => findLocations(btn)));
+  card.querySelectorAll('.edit-scene-btn').forEach(btn => btn.addEventListener('click', () => enterEditMode(btn.dataset.scene)));
+}
+
+function saveSceneEdit(sceneNum) {
+  const card = document.getElementById(`scene-card-${sceneNum}`);
+  const sc = findSceneByNumber(sceneNum);
+  if (!sc || !card) return;
+
+  const getVal = (field) => {
+    const el = card.querySelector(`.edit-input[data-field="${field}"]`);
+    return el ? el.value.trim() : '';
+  };
+  const getArr = (field) => {
+    const val = getVal(field);
+    return val ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
+  };
+
+  sc.heading = getVal('heading');
+  sc.synopsis = getVal('synopsis');
+  sc.location = getVal('location');
+  sc.location_type = getVal('location_type');
+  sc.time_of_day = getVal('time_of_day');
+  sc.complexity = getVal('complexity');
+  sc.budget_impact = getVal('budget_impact');
+  sc.permit_flag = getVal('permit_flag');
+  sc.budget_note = getVal('budget_note');
+  sc.characters = getArr('characters');
+  sc.props = getArr('props');
+  sc.departments = getArr('departments');
+  sc.crew = getArr('crew');
+  sc.equipment = getArr('equipment');
+  sc._edited = true;
+
+  card.innerHTML = sceneDisplayHtml(sc);
+  card.classList.add('scene-edited-flash');
+  setTimeout(() => card.classList.remove('scene-edited-flash'), 900);
+  rewireCard(card);
+
+  // Refresh every aggregate view so edits are reflected everywhere, not just this card.
+  renderStatBar(lastScenes);
+  renderCastPanel(lastScenes);
+  renderLocationsPanel(lastScenes);
+  renderPropsPanel(lastScenes);
+  renderDepartmentsPanel(lastScenes);
+  renderCrewPanel(lastScenes);
+  renderEquipmentPanel(lastScenes);
+  renderBudgetPanel(lastScenes);
+  renderSchedulePanel(lastScenes);
+  sceneCountEl.textContent = `${lastScenes.length} scene${lastScenes.length === 1 ? '' : 's'}`;
+}
+
 function renderScenes(scenes) {
   sceneListEl.innerHTML = '';
   sceneCountEl.textContent = `${scenes.length} scene${scenes.length === 1 ? '' : 's'}`;
@@ -1661,53 +2058,16 @@ function renderScenes(scenes) {
   scenes.forEach(sc => {
     const div = document.createElement('div');
     div.className = 'scene';
-
-    const castTags = (sc.characters || []).map(c => `<span class="tag cast">${esc(c)}</span>`).join('') || '<span class="empty-field">none</span>';
-    const locTag = sc.location ? `<span class="tag location">${esc(sc.location)}</span>` : '';
-    const timeTag = sc.time_of_day ? `<span class="tag time">${esc(sc.time_of_day)}</span>` : '';
-    const propTags = (sc.props || []).length ? (sc.props || []).map(p => `<span class="tag prop">${esc(p)}</span>`).join('') : '<span class="empty-field">none</span>';
-    const deptTags = (sc.departments || []).length ? (sc.departments || []).map(d => `<span class="tag dept">${esc(d)}</span>`).join('') : '<span class="empty-field">none</span>';
-    const crewTags = (sc.crew || []).length ? (sc.crew || []).map(c => `<span class="tag crew">${esc(c)}</span>`).join('') : '<span class="empty-field">base crew only</span>';
-    const equipTags = (sc.equipment || []).length ? (sc.equipment || []).map(e => `<span class="tag equip">${esc(e)}</span>`).join('') : '<span class="empty-field">standard package</span>';
-
-    const complexity = sc.complexity || '';
-    const complexityClass = complexity === 'High' ? 'high' : complexity === 'Medium' ? 'medium' : 'low';
-    const complexityChip = complexity ? `<span class="chip complexity-${complexityClass}">${esc(complexity)} complexity</span>` : '';
-    const permitChip = sc.permit_flag ? `<span class="chip permit">⚑ ${esc(sc.permit_flag)}</span>` : '';
-
-    const budgetImpact = sc.budget_impact || '';
-    const budgetClass = budgetImpact === 'High' ? 'high' : budgetImpact === 'Medium' ? 'medium' : 'low';
-    const budgetChip = budgetImpact ? `<span class="chip budget-${budgetClass}">${esc(budgetImpact)} budget risk</span>` : '';
-    const budgetNoteHtml = sc.budget_note ? `<div class="budget-note">💡 ${esc(sc.budget_note)}</div>` : '';
-
-    const locTypeLine = sc.location_type
-      ? `<div class="loctype-row">Location type: <strong>${esc(sc.location_type)}</strong>
-          <button class="scout-btn" data-loctype="${esc(sc.location_type)}" data-scene="${esc(sc.scene_number)}">Find real locations</button>
-         </div>`
-      : '';
-
-    div.innerHTML = `
-      <div class="scene-num">${esc(sc.scene_number)}</div>
-      <div class="scene-body">
-        <div class="scene-heading">${esc(sc.heading)}</div>
-        <div class="synopsis synopsis-top">${esc(sc.synopsis)}</div>
-        <div class="chips">${locTag}${timeTag}${complexityChip}${budgetChip}${permitChip}</div>
-        <div class="field-row"><span class="field-label">Cast</span><div class="field-tags">${castTags}</div></div>
-        <div class="field-row"><span class="field-label">Props</span><div class="field-tags">${propTags}</div></div>
-        <div class="field-row"><span class="field-label">Depts</span><div class="field-tags">${deptTags}</div></div>
-        <div class="field-row"><span class="field-label">Crew</span><div class="field-tags">${crewTags}</div></div>
-        <div class="field-row"><span class="field-label">Gear</span><div class="field-tags">${equipTags}</div></div>
-        ${budgetNoteHtml}
-        ${locTypeLine}
-        <div class="scout-results" id="scout-${esc(sc.scene_number)}"></div>
-      </div>
-    `;
+    div.id = `scene-card-${sc.scene_number}`;
+    div.innerHTML = sceneDisplayHtml(sc);
     sceneListEl.appendChild(div);
   });
 
-  resultsEl.style.display = 'block';
   document.querySelectorAll('.scout-btn').forEach(btn => {
     btn.addEventListener('click', () => findLocations(btn));
+  });
+  document.querySelectorAll('.edit-scene-btn').forEach(btn => {
+    btn.addEventListener('click', () => enterEditMode(btn.dataset.scene));
   });
 
   renderStatBar(scenes);
@@ -2241,6 +2601,63 @@ If you can't find real, verifiable options, return an empty array [ ]. Do not in
 }
 
 document.getElementById('export-xlsx').addEventListener('click', exportColorCodedXlsx);
+document.getElementById('export-pdf').addEventListener('click', exportBreakdownPdf);
+
+function exportBreakdownPdf() {
+  if (!lastScenes.length) return;
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    statusEl.textContent = 'PDF export library failed to load. Try refreshing, or use CSV/Excel export instead.';
+    statusEl.classList.add('error');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text('rodara — Script Breakdown', 40, 40);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(110);
+  doc.text(`Generated ${new Date().toLocaleDateString()} · ${lastScenes.length} scenes`, 40, 58);
+  doc.setTextColor(0);
+
+  const rows = lastScenes.map(s => [
+    s.scene_number,
+    s.heading || '',
+    (s.characters || []).join(', '),
+    s.location || '',
+    s.time_of_day || '',
+    s.complexity || '',
+    s.budget_impact || '',
+    (s.departments || []).join(', '),
+    s.permit_flag || '',
+  ]);
+
+  doc.autoTable({
+    startY: 75,
+    head: [['#', 'Heading', 'Cast', 'Location', 'Time', 'Complexity', 'Budget Risk', 'Departments', 'Permit Flag']],
+    body: rows,
+    styles: { fontSize: 8, cellPadding: 5, overflow: 'linebreak' },
+    headStyles: { fillColor: [22, 35, 63], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [245, 247, 250] },
+    columnStyles: {
+      0: { cellWidth: 24 },
+      1: { cellWidth: 130 },
+      2: { cellWidth: 100 },
+      3: { cellWidth: 90 },
+      4: { cellWidth: 45 },
+      5: { cellWidth: 60 },
+      6: { cellWidth: 65 },
+      7: { cellWidth: 110 },
+      8: { cellWidth: 120 },
+    },
+  });
+
+  doc.save('rodara_breakdown.pdf');
+}
+
 
 // Column color scheme mirrors the app's own tag colors (translated to Excel-safe ARGB hex),
 // echoing the classic industry practice of color-coded scene-strip breakdown sheets.
@@ -2408,6 +2825,46 @@ document.getElementById('export-csv').addEventListener('click', () => {
     r.map(cell => `"${String(cell ?? '').replace(/"/g,'""')}"`).join(',')
   ).join('\n');
   downloadFile(csv, 'rodara_breakdown.csv', 'text/csv');
+});
+
+document.getElementById('save-project').addEventListener('click', () => {
+  if (!lastScenes.length) return;
+  const project = {
+    rodaraProject: true,
+    version: 1,
+    savedAt: new Date().toISOString(),
+    scenes: lastScenes,
+    shootDays: sceneShootDays,
+    budgetTier: document.getElementById('budget-tier').value,
+  };
+  downloadFile(JSON.stringify(project, null, 2), 'rodara_project.json', 'application/json');
+});
+
+document.getElementById('project-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const project = JSON.parse(text);
+    if (!project.rodaraProject || !Array.isArray(project.scenes)) {
+      throw new Error("This doesn't look like a rodara project file.");
+    }
+    lastScenes = project.scenes;
+    Object.keys(sceneShootDays).forEach(k => delete sceneShootDays[k]);
+    if (project.shootDays) Object.assign(sceneShootDays, project.shootDays);
+    if (project.budgetTier) document.getElementById('budget-tier').value = project.budgetTier;
+
+    showResults();
+    renderScenes(lastScenes);
+    statusEl.textContent = `Loaded saved project from ${new Date(project.savedAt).toLocaleString()} — ${lastScenes.length} scenes.`;
+    statusEl.classList.remove('error');
+    uploadStatus.textContent = `Project loaded: ${file.name}`;
+    uploadStatus.classList.remove('error');
+  } catch (err) {
+    console.error(err);
+    uploadStatus.textContent = 'Error loading project: ' + err.message;
+    uploadStatus.classList.add('error');
+  }
 });
 
 document.getElementById('export-json').addEventListener('click', () => {
