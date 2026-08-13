@@ -1314,7 +1314,25 @@ async function extractPdfText(file) {
     uploadStatus.textContent = `Reading page ${i} of ${pdf.numPages}…`;
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    const pageText = content.items.map(item => item.str).join(' ');
+
+    // Reconstruct real line breaks: pdf.js gives flat text fragments with no
+    // newlines, so we insert a line break whenever the vertical position (Y)
+    // jumps between fragments — this is what lets our scene-heading regex
+    // (which matches at the start of a line) actually find headings that
+    // occur mid-page, not just the first line of each page.
+    let pageText = '';
+    let lastY = null;
+    content.items.forEach(item => {
+      const y = item.transform ? item.transform[5] : null;
+      if (lastY !== null && y !== null && Math.abs(y - lastY) > 2) {
+        pageText += '\n';
+      } else if (pageText && !pageText.endsWith('\n')) {
+        pageText += ' ';
+      }
+      pageText += item.str;
+      if (y !== null) lastY = y;
+    });
+
     if (pageText.trim().length < LOW_TEXT_THRESHOLD) pagesWithLittleText++;
     fullText += pageText + '\n\n';
   }
