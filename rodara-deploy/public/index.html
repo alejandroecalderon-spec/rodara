@@ -25,7 +25,7 @@
     --white:#0A0E17;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;overflow-x:hidden;}
   body{
     position:relative;
     background-image:
@@ -619,9 +619,67 @@
   }
 
   @media (max-width:640px){
-    .titleblock h1{font-size:38px;}
-    .page{padding:28px 20px 28px 34px;}
-    .page::before{left:18px;}
+    .wrap{padding:28px 14px 60px;}
+    .titleblock{padding:20px 8px 28px;}
+    .titleblock .eyebrow{font-size:10px; letter-spacing:.12em;}
+    .titleblock h1{font-size:34px;}
+    .titleblock p.subtitle{font-size:13.5px; padding:0 4px;}
+    .page{padding:22px 16px 22px 28px;}
+    .page::before{left:14px; top:22px; bottom:22px;}
+
+    label{font-size:11px;}
+    textarea{min-height:160px; font-size:12.5px; padding:14px; border-radius:16px;}
+    .upload-btn{font-size:12px; padding:9px 16px;}
+    .row{gap:10px;}
+    button{font-size:13px; padding:11px 18px;}
+
+    /* Stat bar: 2 columns instead of squeezing 6 across */
+    .stat-bar{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+    .stat-chip{padding:10px 12px;}
+    .stat-num{font-size:19px;}
+    .stat-label{font-size:9.5px;}
+
+    /* Scout/budget bars: stack vertically instead of cramming in a row */
+    .scout-bar{flex-direction:column; align-items:stretch; gap:8px; border-radius:18px; padding:12px 16px;}
+    .scout-label{margin-bottom:0;}
+    #city-input, #budget-tier{width:100%;}
+    .scout-hint{font-size:10.5px;}
+
+    /* Tabs: horizontal scroll instead of wrapping into a tall stack */
+    .tabs{
+      flex-wrap:nowrap;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      padding-bottom:12px;
+      margin-left:-16px;
+      margin-right:-16px;
+      padding-left:16px;
+      padding-right:16px;
+      scrollbar-width:none;
+    }
+    .tabs::-webkit-scrollbar{display:none;}
+    .tab-btn{flex-shrink:0; font-size:12px; padding:8px 16px;}
+
+    .legend{gap:10px; font-size:10.5px;}
+
+    /* Scene cards: tighter padding, labels above tags instead of side-by-side */
+    .scene{padding:14px 16px; border-radius:16px;}
+    .scene-num{width:28px; height:28px; font-size:12px;}
+    .scene-heading{font-size:13px;}
+    .field-row{flex-direction:column; gap:4px; margin-bottom:10px;}
+    .field-label{width:auto;}
+    .loctype-row{flex-direction:column; align-items:flex-start; gap:8px;}
+    .scout-btn{width:100%; text-align:center;}
+
+    /* Category tab cards */
+    .cat-card{padding:12px 14px; border-radius:14px;}
+    .toolbar-out{flex-wrap:wrap;}
+    .toolbar-out button{flex:1; min-width:120px;}
+  }
+
+  @media (max-width:400px){
+    .titleblock h1{font-size:28px;}
+    .stat-bar{grid-template-columns:1fr 1fr;}
   }
 </style>
 </head>
@@ -1141,7 +1199,7 @@ const API_ENDPOINT = '/api/anthropic';
 
 // If your deployment sets an ACCESS_CODE env var on the server, set the same
 // value here so testers' requests are authorized. Leave blank for none.
-const ACCESS_CODE = 'rodara-snIODBW-CNIW';
+const ACCESS_CODE = '';
 
 // Calls fetch with automatic retry on rate-limit (429) or overload (529) responses,
 // using exponential backoff (and honoring a Retry-After header when present).
