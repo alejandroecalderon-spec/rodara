@@ -87,7 +87,25 @@
     100%{transform:translateY(-100vh) translateX(20px); opacity:0;}
   }
 
-  /* Sprocket-hole strips along the far edges, like 35mm film stock */
+  /* Original line-art film-gear silhouettes — subtle background decoration, drawn from scratch */
+  .gear-icon{
+    position:fixed;
+    z-index:0;
+    pointer-events:none;
+    opacity:0.16;
+    color:var(--neon-cyan);
+  }
+  .gear-clapper{top:14%; left:2%; width:190px; transform:rotate(-8deg);}
+  .gear-reel{bottom:8%; right:3%; width:210px; color:var(--neon-magenta); opacity:0.14;}
+  .gear-camera{top:52%; right:1.5%; width:170px; color:var(--neon-blue); opacity:0.14; transform:rotate(4deg);}
+  .gear-boom{bottom:30%; left:1%; width:230px; color:var(--neon-lime); opacity:0.13; transform:rotate(-14deg);}
+  .gear-chair{bottom:5%; left:4%; width:150px; color:var(--neon-amber); opacity:0.13; transform:rotate(6deg);}
+  .gear-spotlight{top:6%; right:5%; width:160px; color:var(--neon-cyan); opacity:0.13; transform:rotate(10deg);}
+  .gear-filmstrip{top:36%; left:0.5%; width:90px; color:var(--neon-blue); opacity:0.12; transform:rotate(-3deg);}
+  .gear-megaphone{bottom:44%; right:1%; width:150px; color:var(--neon-magenta); opacity:0.12; transform:rotate(-6deg);}
+
+  @media (max-width:1150px){ .gear-icon{display:none;} }
+
   .sprockets{
     position:fixed;
     top:0; bottom:0;
@@ -589,6 +607,74 @@
   }
   .cat-meta{font-size:12px; color:var(--ink-soft); margin-top:6px;}
   .cat-empty{text-align:center; padding:40px 20px; color:var(--ink-soft); font-size:13.5px;}
+
+  /* Ask tab */
+  .ask-bar{display:flex; gap:10px; margin-bottom:8px;}
+  #ask-input{
+    flex:1;
+    background:var(--white);
+    border:1px solid var(--navy-line);
+    border-radius:999px;
+    padding:11px 18px;
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+  }
+  #ask-input:focus{outline:2px solid var(--neon-cyan); outline-offset:1px;}
+  .ask-hint{font-size:11.5px; color:var(--ink-soft); margin-bottom:18px; font-style:italic;}
+  .qa-pair{
+    background:var(--panel-raised);
+    border:1px solid var(--navy-line);
+    border-radius:16px;
+    padding:14px 18px;
+    margin-bottom:12px;
+  }
+  .qa-q{font-weight:700; font-size:13.5px; color:var(--neon-cyan); margin-bottom:8px;}
+  .qa-a{font-size:13.5px; color:var(--ink); line-height:1.6; white-space:pre-wrap;}
+  .qa-loading{color:var(--ink-soft); font-style:italic;}
+
+  /* Schedule tab */
+  .schedule-toolbar{display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap;}
+  .schedule-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:10px 16px;
+    border-bottom:1px solid var(--navy-line);
+  }
+  .schedule-row-num{
+    font-family:'Courier Prime', monospace;
+    color:var(--neon-cyan);
+    font-weight:700;
+    width:26px;
+    flex-shrink:0;
+    font-size:13px;
+  }
+  .schedule-row-heading{flex:1; font-size:13px; color:var(--ink); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .day-input{
+    width:64px;
+    background:var(--white);
+    border:1px solid var(--navy-line);
+    border-radius:8px;
+    padding:6px 10px;
+    color:var(--ink);
+    font-family:'Courier Prime', monospace;
+    font-size:13px;
+    text-align:center;
+  }
+  .day-input:focus{outline:2px solid var(--neon-cyan); outline-offset:1px;}
+  .conflict-card{
+    border-radius:16px;
+    padding:14px 18px;
+    margin-bottom:10px;
+    border:1px solid;
+  }
+  .conflict-card.turnaround{background:rgba(255,79,216,0.06); border-color:rgba(255,79,216,0.3);}
+  .conflict-card.dayload{background:rgba(255,201,61,0.06); border-color:rgba(255,201,61,0.3);}
+  .conflict-card.locationmove{background:rgba(77,156,255,0.06); border-color:rgba(77,156,255,0.3);}
+  .conflict-type{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; font-weight:700; margin-bottom:4px; opacity:0.8;}
+  .conflict-message{font-size:13px; color:var(--ink); line-height:1.5;}
+  .no-conflicts{color:var(--neon-lime); font-size:13.5px; padding:16px 0;}
   .base-crew-note{
     background:rgba(255,255,255,0.02);
     border:1px dashed var(--navy-line);
@@ -687,6 +773,101 @@
 <div class="sprockets sprockets-left"></div>
 <div class="sprockets sprockets-right"></div>
 <div class="projector-beam"></div>
+
+<!-- Original line-art icons, drawn from scratch for this project -->
+<svg class="gear-icon gear-clapper" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="20" y="70" width="160" height="105" rx="6"/>
+  <rect x="14" y="30" width="172" height="34" rx="5" transform="rotate(-9 100 47)"/>
+  <line x1="14" y1="46" x2="46" y2="20" transform="rotate(-9 100 47)"/>
+  <line x1="55" y1="46" x2="87" y2="20" transform="rotate(-9 100 47)"/>
+  <line x1="96" y1="46" x2="128" y2="20" transform="rotate(-9 100 47)"/>
+  <line x1="137" y1="46" x2="169" y2="20" transform="rotate(-9 100 47)"/>
+  <circle cx="20" cy="47" r="5" transform="rotate(-9 100 47)"/>
+  <line x1="55" y1="70" x2="55" y2="175"/>
+  <line x1="100" y1="70" x2="100" y2="175"/>
+  <line x1="145" y1="70" x2="145" y2="175"/>
+</svg>
+
+<svg class="gear-icon gear-reel" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="100" cy="100" r="80"/>
+  <circle cx="100" cy="100" r="16"/>
+  <circle cx="100" cy="46" r="15"/>
+  <circle cx="147" cy="73" r="15"/>
+  <circle cx="147" cy="127" r="15"/>
+  <circle cx="100" cy="154" r="15"/>
+  <circle cx="53" cy="127" r="15"/>
+  <circle cx="53" cy="73" r="15"/>
+</svg>
+
+<svg class="gear-icon gear-camera" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="30" y="70" width="120" height="75" rx="8"/>
+  <rect x="55" y="45" width="45" height="28" rx="4"/>
+  <circle cx="150" cy="107" r="30"/>
+  <circle cx="150" cy="107" r="14"/>
+  <line x1="45" y1="145" x2="20" y2="185"/>
+  <line x1="90" y1="145" x2="90" y2="188"/>
+  <line x1="135" y1="145" x2="160" y2="185"/>
+</svg>
+
+<svg class="gear-icon gear-boom" viewBox="0 0 220 200" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="20" y1="180" x2="170" y2="40"/>
+  <circle cx="185" cy="27" r="26"/>
+  <path d="M165 15 Q185 -2 205 15"/>
+  <path d="M162 27 Q185 12 208 27"/>
+  <path d="M165 39 Q185 26 205 39"/>
+  <line x1="20" y1="180" x2="35" y2="192"/>
+</svg>
+
+<svg class="gear-icon gear-chair" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="30" y1="185" x2="90" y2="70"/>
+  <line x1="170" y1="185" x2="110" y2="70"/>
+  <line x1="30" y1="70" x2="90" y2="185"/>
+  <line x1="170" y1="70" x2="110" y2="185"/>
+  <line x1="90" y1="70" x2="110" y2="70"/>
+  <rect x="80" y="95" width="40" height="55" rx="3"/>
+  <line x1="70" y1="30" x2="70" y2="95"/>
+  <line x1="130" y1="30" x2="130" y2="95"/>
+  <rect x="66" y="20" width="68" height="45" rx="3"/>
+</svg>
+
+<svg class="gear-icon gear-spotlight" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M60 60 L140 60 L165 130 L35 130 Z"/>
+  <ellipse cx="100" cy="60" rx="40" ry="10"/>
+  <line x1="100" y1="40" x2="100" y2="15"/>
+  <circle cx="100" cy="12" r="8"/>
+  <line x1="60" y1="150" x2="45" y2="185"/>
+  <line x1="100" y1="150" x2="100" y2="188"/>
+  <line x1="140" y1="150" x2="155" y2="185"/>
+</svg>
+
+<svg class="gear-icon gear-filmstrip" viewBox="0 0 100 220" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="15" y="8" width="70" height="204" rx="4"/>
+  <line x1="15" y1="52" x2="85" y2="52"/>
+  <line x1="15" y1="96" x2="85" y2="96"/>
+  <line x1="15" y1="140" x2="85" y2="140"/>
+  <line x1="15" y1="184" x2="85" y2="184"/>
+  <rect x="4" y="18" width="10" height="14" rx="2"/>
+  <rect x="4" y="52" width="10" height="14" rx="2"/>
+  <rect x="4" y="86" width="10" height="14" rx="2"/>
+  <rect x="4" y="120" width="10" height="14" rx="2"/>
+  <rect x="4" y="154" width="10" height="14" rx="2"/>
+  <rect x="4" y="188" width="10" height="14" rx="2"/>
+  <rect x="86" y="18" width="10" height="14" rx="2"/>
+  <rect x="86" y="52" width="10" height="14" rx="2"/>
+  <rect x="86" y="86" width="10" height="14" rx="2"/>
+  <rect x="86" y="120" width="10" height="14" rx="2"/>
+  <rect x="86" y="154" width="10" height="14" rx="2"/>
+  <rect x="86" y="188" width="10" height="14" rx="2"/>
+</svg>
+
+<svg class="gear-icon gear-megaphone" viewBox="0 0 200 160" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M70 45 L150 15 L150 130 L70 100 Z"/>
+  <path d="M70 45 L30 55 Q20 72 30 90 L70 100 Z"/>
+  <line x1="150" y1="30" x2="180" y2="20"/>
+  <line x1="150" y1="72" x2="185" y2="72"/>
+  <line x1="150" y1="115" x2="180" y2="125"/>
+</svg>
+
 <div class="wrap">
 
   <div class="titleblock">
@@ -754,6 +935,8 @@ Rain hammers the tin roof. MAYA (30s, soaked, jaw set) kicks open a rusted door.
         <button class="tab-btn" data-tab="crew">Crew</button>
         <button class="tab-btn" data-tab="equipment">Equipment</button>
         <button class="tab-btn" data-tab="budget">Budget Risk</button>
+        <button class="tab-btn" data-tab="schedule">Schedule</button>
+        <button class="tab-btn" data-tab="ask">Ask</button>
       </div>
 
       <div class="legend" id="legend-scenes">
@@ -776,6 +959,15 @@ Rain hammers the tin roof. MAYA (30s, soaked, jaw set) kicks open a rusted door.
       <div class="tab-panel" id="panel-crew"></div>
       <div class="tab-panel" id="panel-equipment"></div>
       <div class="tab-panel" id="panel-budget"></div>
+      <div class="tab-panel" id="panel-schedule"></div>
+      <div class="tab-panel" id="panel-ask">
+        <div class="ask-bar">
+          <input type="text" id="ask-input" placeholder="e.g. Which scenes need a stunt coordinator? What's my most location-heavy stretch?" />
+          <button class="btn-primary" id="ask-btn">Ask</button>
+        </div>
+        <div class="ask-hint">Answers are generated from this script's parsed breakdown only — not general knowledge.</div>
+        <div id="ask-history"></div>
+      </div>
 
       <div class="toolbar-out">
         <button class="btn-ghost" id="export-xlsx">Export Excel (color-coded)</button>
@@ -822,7 +1014,7 @@ I really do.`;
 
 // Generate a handful of drifting dust motes, like particles in a projector beam.
 (function createMotes() {
-  const count = window.innerWidth < 700 ? 6 : 14;
+  const count = window.innerWidth < 700 ? 9 : 24;
   for (let i = 0; i < count; i++) {
     const mote = document.createElement('div');
     mote.className = 'mote';
@@ -1362,6 +1554,7 @@ function renderScenes(scenes) {
   renderCrewPanel(scenes);
   renderEquipmentPanel(scenes);
   renderBudgetPanel(scenes);
+  renderSchedulePanel(scenes);
 }
 
 function renderStatBar(scenes) {
@@ -1593,6 +1786,133 @@ function renderBudgetPanel(scenes) {
   panel.innerHTML = disclaimer + riskSection + notesSection;
 }
 
+// --- Scheduling + conflict detection ---
+// Shoot-day assignments are kept in a stable map keyed by scene_number, separate
+// from the scenes array, so re-rendering during chunked parsing never wipes
+// values the user already typed in.
+const sceneShootDays = {};
+
+function renderSchedulePanel(scenes) {
+  const panel = document.getElementById('panel-schedule');
+
+  const rows = scenes.map(s => {
+    const day = sceneShootDays[s.scene_number] ?? '';
+    return `
+      <div class="schedule-row">
+        <span class="schedule-row-num">${esc(s.scene_number)}</span>
+        <span class="schedule-row-heading">${esc(s.heading)}</span>
+        <input type="number" min="1" class="day-input" data-scene="${esc(s.scene_number)}" placeholder="Day" value="${day}" />
+      </div>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <div class="cat-meta base-crew-note">
+      Assign each scene to a shoot day (script order isn't shoot order — productions often shoot out of sequence). Then run a conflict check for realistic day loads, character turnaround, and location moves.
+    </div>
+    <div class="schedule-toolbar">
+      <button class="btn-primary" id="run-conflict-check">Run Conflict Check</button>
+      <span class="scout-hint" id="schedule-status"></span>
+    </div>
+    <div id="schedule-rows">${rows}</div>
+    <div id="conflict-results" style="margin-top:20px;"></div>
+  `;
+
+  panel.querySelectorAll('.day-input').forEach(input => {
+    input.addEventListener('input', () => {
+      const sceneNum = input.dataset.scene;
+      const val = input.value.trim();
+      if (val === '') delete sceneShootDays[sceneNum];
+      else sceneShootDays[sceneNum] = parseInt(val, 10);
+    });
+  });
+
+  document.getElementById('run-conflict-check').addEventListener('click', () => runConflictCheck(lastScenes));
+}
+
+function runConflictCheck(scenes) {
+  const resultsEl2 = document.getElementById('conflict-results');
+  const statusEl2 = document.getElementById('schedule-status');
+
+  const assigned = scenes.filter(s => sceneShootDays[s.scene_number] !== undefined);
+  if (!assigned.length) {
+    statusEl2.textContent = 'Assign at least a few scenes to shoot days first.';
+    resultsEl2.innerHTML = '';
+    return;
+  }
+  statusEl2.textContent = `Checking ${assigned.length} assigned scene${assigned.length === 1 ? '' : 's'}…`;
+
+  // Group scenes by day
+  const dayMap = {};
+  assigned.forEach(s => {
+    const day = sceneShootDays[s.scene_number];
+    if (!dayMap[day]) dayMap[day] = [];
+    dayMap[day].push(s);
+  });
+  const days = Object.keys(dayMap).map(Number).sort((a, b) => a - b);
+
+  const flags = [];
+
+  // Rule 1: day load — too many scenes, or too many high-complexity scenes, in one day
+  days.forEach(day => {
+    const list = dayMap[day];
+    const highCount = list.filter(s => s.complexity === 'High').length;
+    if (list.length > 8) {
+      flags.push({ type: 'dayload', label: 'Day Load', message: `Day ${day} has ${list.length} scenes scheduled — that's a heavy load for one day; consider splitting it.` });
+    }
+    if (highCount >= 3) {
+      flags.push({ type: 'dayload', label: 'Day Load', message: `Day ${day} has ${highCount} High-complexity scenes scheduled together — consider spreading these across more days.` });
+    }
+
+    // Rule 2: location moves — many distinct locations in one day
+    const locs = new Set(list.map(s => (s.location || '').toUpperCase()).filter(Boolean));
+    if (locs.size > 2) {
+      flags.push({ type: 'locationmove', label: 'Location Move', message: `Day ${day} spans ${locs.size} different locations (${[...locs].join(', ')}) — factor in company move time between them.` });
+    }
+  });
+
+  // Rule 3: character turnaround — a NIGHT scene on day X, same character also on day X+1
+  const charNightDays = {};
+  assigned.forEach(s => {
+    const day = sceneShootDays[s.scene_number];
+    const isNight = /NIGHT/i.test(s.time_of_day || '');
+    (s.characters || []).forEach(c => {
+      const key = c.toUpperCase();
+      if (!charNightDays[key]) charNightDays[key] = new Set();
+      if (isNight) charNightDays[key].add(day);
+    });
+  });
+  const charAllDays = {};
+  assigned.forEach(s => {
+    const day = sceneShootDays[s.scene_number];
+    (s.characters || []).forEach(c => {
+      const key = c.toUpperCase();
+      if (!charAllDays[key]) charAllDays[key] = new Set();
+      charAllDays[key].add(day);
+    });
+  });
+  Object.keys(charNightDays).forEach(char => {
+    charNightDays[char].forEach(nightDay => {
+      if (charAllDays[char] && charAllDays[char].has(nightDay + 1)) {
+        flags.push({ type: 'turnaround', label: 'Turnaround', message: `${char} has a NIGHT scene on Day ${nightDay} and is scheduled again on Day ${nightDay + 1} — verify there's adequate rest between shoot days.` });
+      }
+    });
+  });
+
+  statusEl2.textContent = `Checked ${assigned.length} assigned scene${assigned.length === 1 ? '' : 's'} across ${days.length} day${days.length === 1 ? '' : 's'}.`;
+
+  if (!flags.length) {
+    resultsEl2.innerHTML = `<div class="no-conflicts">✓ No conflicts found in the current assignment — nice work.</div>`;
+    return;
+  }
+
+  resultsEl2.innerHTML = flags.map(f => `
+    <div class="conflict-card ${f.type}">
+      <div class="conflict-type">${esc(f.label)}</div>
+      <div class="conflict-message">${esc(f.message)}</div>
+    </div>
+  `).join('');
+}
+
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1607,6 +1927,80 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 document.getElementById('budget-tier').addEventListener('change', () => {
   if (lastScenes.length) renderBudgetPanel(lastScenes);
 });
+
+// --- Natural-language query layer ---
+let qaHistory = [];
+
+document.getElementById('ask-btn').addEventListener('click', askQuestion);
+document.getElementById('ask-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') askQuestion();
+});
+
+async function askQuestion() {
+  const input = document.getElementById('ask-input');
+  const question = input.value.trim();
+  if (!question) return;
+  if (!lastScenes.length) {
+    renderQaHistory();
+    qaHistory.unshift({ q: question, a: "Run a breakdown first — there's no script data to answer from yet." });
+    renderQaHistory();
+    return;
+  }
+
+  const btn = document.getElementById('ask-btn');
+  btn.disabled = true;
+  input.disabled = true;
+  const pendingEntry = { q: question, a: null, loading: true };
+  qaHistory.unshift(pendingEntry);
+  renderQaHistory();
+  input.value = '';
+
+  const ASK_SYSTEM_PROMPT = `You are answering questions about a screenplay's script breakdown, using ONLY the structured scene data provided below. Do not use outside knowledge about films, and do not invent details not present in the data. If the data doesn't support an answer, say so plainly. Reference specific scene numbers when relevant. Keep answers concise — a few sentences or a short list, not an essay.`;
+
+  try {
+    const response = await fetchWithRetry(API_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-5",
+        max_tokens: 700,
+        system: ASK_SYSTEM_PROMPT,
+        messages: [
+          { role: "user", content: `Script breakdown data:\n${JSON.stringify(lastScenes)}\n\nQuestion: ${question}` }
+        ]
+      })
+    }, {
+      onRetry: (attempt, max, waitSec) => {
+        pendingEntry.a = `Rate limited — retrying in ${waitSec}s (attempt ${attempt}/${max})…`;
+        renderQaHistory();
+      }
+    });
+
+    if (!response.ok) throw new Error(`Request failed (${response.status})`);
+    const data = await response.json();
+    const textBlock = data.content.find(b => b.type === "text");
+    pendingEntry.a = textBlock ? textBlock.text.trim() : "No answer returned.";
+  } catch (err) {
+    console.error(err);
+    pendingEntry.a = 'Error: ' + err.message;
+  } finally {
+    pendingEntry.loading = false;
+    renderQaHistory();
+    btn.disabled = false;
+    input.disabled = false;
+    input.focus();
+  }
+}
+
+function renderQaHistory() {
+  const container = document.getElementById('ask-history');
+  container.innerHTML = qaHistory.map(entry => `
+    <div class="qa-pair">
+      <div class="qa-q">${esc(entry.q)}</div>
+      <div class="qa-a ${entry.loading ? 'qa-loading' : ''}">${entry.loading ? 'Thinking…' : esc(entry.a)}</div>
+    </div>
+  `).join('');
+}
 
 async function findLocations(btn) {
   const locType = btn.getAttribute('data-loctype');
