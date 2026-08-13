@@ -87,6 +87,70 @@
     100%{transform:translateY(-100vh) translateX(20px); opacity:0;}
   }
 
+  /* Access gate — private beta code entry */
+  .access-gate{
+    position:fixed;
+    inset:0;
+    z-index:1000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(6,9,15,0.92);
+    backdrop-filter:blur(6px);
+    padding:20px;
+  }
+  .access-gate.hidden{display:none;}
+  .access-gate-card{
+    background:var(--panel);
+    border:1px solid var(--navy-line);
+    border-radius:24px;
+    padding:36px 32px;
+    max-width:340px;
+    width:100%;
+    text-align:center;
+    box-shadow:0 0 60px rgba(61,240,224,0.08);
+  }
+  .access-gate-eyebrow{
+    font-family:'Courier Prime', monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--neon-cyan);
+    margin-bottom:10px;
+  }
+  .access-gate-card h2{
+    font-family:'Courier Prime', monospace;
+    font-size:32px;
+    margin:0 0 14px;
+    color:var(--ink);
+  }
+  .access-gate-card p{
+    font-size:13.5px;
+    color:var(--ink-soft);
+    margin:0 0 20px;
+    line-height:1.5;
+  }
+  #access-code-input{
+    width:100%;
+    background:var(--white);
+    border:1px solid var(--navy-line);
+    border-radius:999px;
+    padding:11px 18px;
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    text-align:center;
+    margin-bottom:14px;
+  }
+  #access-code-input:focus{outline:2px solid var(--neon-cyan); outline-offset:1px;}
+  #access-code-submit{width:100%;}
+  .access-gate-error{
+    color:var(--neon-magenta);
+    font-size:12.5px;
+    margin-top:12px;
+    min-height:16px;
+  }
+
   /* Original line-art film-gear silhouettes — subtle background decoration, drawn from scratch */
   .gear-icon{
     position:fixed;
@@ -868,6 +932,17 @@
   <line x1="150" y1="115" x2="180" y2="125"/>
 </svg>
 
+<div id="access-gate" class="access-gate">
+  <div class="access-gate-card">
+    <div class="access-gate-eyebrow">Fade In</div>
+    <h2>rodara</h2>
+    <p>This is a private beta. Enter your access code to continue.</p>
+    <input type="password" id="access-code-input" placeholder="Access code" autocomplete="off" />
+    <button id="access-code-submit" class="btn-primary">Enter</button>
+    <div id="access-gate-error" class="access-gate-error"></div>
+  </div>
+</div>
+
 <div class="wrap">
 
   <div class="titleblock">
@@ -1144,7 +1219,7 @@ async function runVisionBreakdown(file, triggerBtn) {
   sceneCountEl.textContent = '';
   statusEl.classList.remove('error');
 
-  const BATCH_SIZE = 6;
+  const BATCH_SIZE = 4;
   let merged = [];
 
   try {
@@ -1330,7 +1405,7 @@ function splitIntoSceneBlocks(text) {
 }
 
 // Groups scene blocks into batches under a target character budget per API call.
-function batchSceneBlocks(blocks, maxCharsPerBatch = 12000) {
+function batchSceneBlocks(blocks, maxCharsPerBatch = 6000) {
   const batches = [];
   let current = '';
   for (const block of blocks) {
@@ -1343,6 +1418,29 @@ function batchSceneBlocks(blocks, maxCharsPerBatch = 12000) {
   }
   if (current) batches.push(current);
   return batches;
+}
+
+// Wraps callParseAPI with automatic sub-splitting: if a batch's output gets
+// truncated (too many/rich scenes for one response), split it at scene
+// boundaries and retry each half separately, merging results back together.
+async function processChunkRobust(batchText, depth, onRetryStatus) {
+  try {
+    return await callParseAPI(batchText, onRetryStatus);
+  } catch (err) {
+    const isTruncation = /cut off/i.test(err.message);
+    if (isTruncation && depth < 4) {
+      const blocks = splitIntoSceneBlocks(batchText);
+      if (blocks.length > 1) {
+        const mid = Math.ceil(blocks.length / 2);
+        const firstHalf = blocks.slice(0, mid).join('');
+        const secondHalf = blocks.slice(mid).join('');
+        const firstResult = await processChunkRobust(firstHalf, depth + 1, onRetryStatus);
+        const secondResult = await processChunkRobust(secondHalf, depth + 1, onRetryStatus);
+        return firstResult.concat(secondResult);
+      }
+    }
+    throw err;
+  }
 }
 
 async function callParseAPI(chunkText, onRetryStatus) {
@@ -1389,9 +1487,54 @@ async function callParseAPI(chunkText, onRetryStatus) {
 // (see DEPLOY.md).
 const API_ENDPOINT = '/api/anthropic';
 
-// If your deployment sets an ACCESS_CODE env var on the server, set the same
-// value here so testers' requests are authorized. Leave blank for none.
-const ACCESS_CODE = 'rodara-pro-int';
+// Access code for the private beta gate. Populated from localStorage if the
+// person already entered it once, otherwise set when they submit the gate form.
+let ACCESS_CODE = localStorage.getItem('rodara_access_code') || '';
+
+// Access gate logic — show the code-entry screen unless already unlocked.
+(function initAccessGate() {
+  const gate = document.getElementById('access-gate');
+  const input = document.getElementById('access-code-input');
+  const submitBtn = document.getElementById('access-code-submit');
+  const errorEl = document.getElementById('access-gate-error');
+
+  function unlock(code) {
+    ACCESS_CODE = code;
+    localStorage.setItem('rodara_access_code', code);
+    gate.classList.add('hidden');
+  }
+
+  if (ACCESS_CODE) {
+    gate.classList.add('hidden');
+  }
+
+  function trySubmit() {
+    const val = input.value.trim();
+    if (!val) {
+      errorEl.textContent = 'Enter a code to continue.';
+      return;
+    }
+    errorEl.textContent = '';
+    unlock(val);
+  }
+
+  submitBtn.addEventListener('click', trySubmit);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') trySubmit();
+  });
+
+  // Called from elsewhere if a request comes back 401 (wrong code) — reopens
+  // the gate and clears the stored bad code so they can re-enter.
+  window.reopenAccessGate = function (message) {
+    localStorage.removeItem('rodara_access_code');
+    ACCESS_CODE = '';
+    gate.classList.remove('hidden');
+    errorEl.textContent = message || 'That code was rejected. Try again.';
+    input.value = '';
+    input.focus();
+  };
+})();
+
 
 // Calls fetch with automatic retry on rate-limit (429) or overload (529) responses,
 // using exponential backoff (and honoring a Retry-After header when present).
@@ -1446,7 +1589,7 @@ async function runBreakdown() {
 
       for (let i = 0; i < batches.length; i++) {
         statusEl.textContent = `Reading batch ${i + 1} of ${batches.length} (${merged.length} scenes so far)…`;
-        const batchScenes = await callParseAPI(batches[i], (msg) => { statusEl.textContent = `Batch ${i + 1}/${batches.length}: ${msg}`; });
+        const batchScenes = await processChunkRobust(batches[i], 0, (msg) => { statusEl.textContent = `Batch ${i + 1}/${batches.length}: ${msg}`; });
         merged = merged.concat(batchScenes);
         merged.forEach((s, idx) => s.scene_number = idx + 1);
         lastScenes = merged;
@@ -1472,7 +1615,10 @@ async function runBreakdown() {
     } else if (/404/.test(err.message)) {
       statusEl.textContent = 'Backend not found (404). If this is a deployed copy, make sure /api/anthropic.js is deployed alongside this page and ANTHROPIC_API_KEY is set.';
     } else if (/401/.test(err.message)) {
-      statusEl.textContent = 'Unauthorized (401). Check that the access code matches between the frontend (ACCESS_CODE) and server (ACCESS_CODE env var), or that ANTHROPIC_API_KEY is set correctly.';
+      if (window.reopenAccessGate) {
+        window.reopenAccessGate('That access code was rejected. Try again.');
+      }
+      statusEl.textContent = 'Access code rejected — enter it again in the box that just appeared.';
     } else if (/429/.test(err.message)) {
       statusEl.textContent = 'Still rate limited after several retries. Wait a minute and try again — or try a shorter script section.';
     } else {
