@@ -837,6 +837,23 @@
     padding:10px 16px;
     border-bottom:1px solid var(--navy-line);
   }
+  .day-group-header{
+    font-family:'Courier Prime', monospace;
+    font-size:12px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--neon-cyan);
+    background:rgba(61,240,224,0.06);
+    padding:8px 16px;
+    margin-top:14px;
+    border-radius:8px;
+  }
+  .day-group-header:first-child{margin-top:0;}
+  .day-group-header.day-group-unassigned{
+    color:var(--ink-soft);
+    background:rgba(255,255,255,0.03);
+  }
   .schedule-row-num{
     font-family:'Courier Prime', monospace;
     color:var(--neon-cyan);
@@ -2361,22 +2378,57 @@ function renderBudgetPanel(scenes) {
 // values the user already typed in.
 const sceneShootDays = {};
 
+function scheduleRowHtml(s) {
+  const day = sceneShootDays[s.scene_number] ?? '';
+  return `
+    <div class="schedule-row">
+      <span class="schedule-row-num">${esc(s.scene_number)}</span>
+      <span class="schedule-row-heading">${esc(s.heading)}</span>
+      <input type="number" min="1" class="day-input" data-scene="${esc(s.scene_number)}" placeholder="Day" value="${day}" />
+    </div>`;
+}
+
+function buildScheduleRows(scenes) {
+  const grouped = {};
+  const unassigned = [];
+  scenes.forEach(s => {
+    const day = sceneShootDays[s.scene_number];
+    if (day === undefined || day === null || Number.isNaN(day)) {
+      unassigned.push(s);
+    } else {
+      if (!grouped[day]) grouped[day] = [];
+      grouped[day].push(s);
+    }
+  });
+
+  const dayKeys = Object.keys(grouped).map(Number).sort((a, b) => a - b);
+  let html = '';
+
+  dayKeys.forEach(day => {
+    html += `<div class="day-group-header">Day ${day}</div>`;
+    grouped[day]
+      .sort((a, b) => a.scene_number - b.scene_number)
+      .forEach(s => { html += scheduleRowHtml(s); });
+  });
+
+  if (unassigned.length) {
+    html += `<div class="day-group-header day-group-unassigned">Unassigned</div>`;
+    unassigned
+      .sort((a, b) => a.scene_number - b.scene_number)
+      .forEach(s => { html += scheduleRowHtml(s); });
+  }
+
+  return html;
+}
+
 function renderSchedulePanel(scenes) {
   const panel = document.getElementById('panel-schedule');
 
-  const rows = scenes.map(s => {
-    const day = sceneShootDays[s.scene_number] ?? '';
-    return `
-      <div class="schedule-row">
-        <span class="schedule-row-num">${esc(s.scene_number)}</span>
-        <span class="schedule-row-heading">${esc(s.heading)}</span>
-        <input type="number" min="1" class="day-input" data-scene="${esc(s.scene_number)}" placeholder="Day" value="${day}" />
-      </div>`;
-  }).join('');
+  const rows = buildScheduleRows(scenes);
 
   panel.innerHTML = `
     <div class="cat-meta base-crew-note">
-      Assign each scene to a shoot day (script order isn't shoot order — productions often shoot out of sequence). Then run a conflict check for realistic day loads, character turnaround, and location moves.
+      Assign each scene to a shoot day (script order isn't shoot order — productions often shoot out of sequence). Scenes are grouped and sorted by day below once assigned. Then run a conflict check for realistic day loads, character turnaround, and location moves.
     </div>
 
     <div class="auto-schedule-box">
@@ -2408,6 +2460,15 @@ function renderSchedulePanel(scenes) {
       const val = input.value.trim();
       if (val === '') delete sceneShootDays[sceneNum];
       else sceneShootDays[sceneNum] = parseInt(val, 10);
+    });
+    // Regroup/re-sort only once the person finishes editing this field
+    // (blur or Enter) — regrouping on every keystroke would yank the row
+    // out from under them mid-type.
+    input.addEventListener('change', () => {
+      renderSchedulePanel(scenes);
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') input.blur();
     });
   });
 
@@ -3020,4 +3081,3 @@ function downloadFile(content, filename, mime) {
 </script>
 </body>
 </html>
-
