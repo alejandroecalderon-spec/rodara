@@ -785,6 +785,51 @@
 
   /* Schedule tab */
   .schedule-toolbar{display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap;}
+  .auto-schedule-box{
+    background:rgba(61,240,224,0.04);
+    border:1px solid rgba(61,240,224,0.25);
+    border-radius:18px;
+    padding:16px 20px;
+    margin-bottom:18px;
+  }
+  .auto-schedule-head{
+    font-family:'Courier Prime', monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--neon-cyan);
+    margin-bottom:8px;
+  }
+  .auto-schedule-body{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    line-height:1.5;
+    margin-bottom:14px;
+  }
+  .auto-schedule-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .auto-schedule-row label{
+    font-family:'Courier Prime', monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  #target-days-input{
+    width:70px;
+    background:var(--white);
+    border:1px solid var(--navy-line);
+    border-radius:8px;
+    padding:8px 10px;
+    color:var(--ink);
+    font-family:'Courier Prime', monospace;
+    font-size:13px;
+    text-align:center;
+  }
+  #target-days-input:focus{outline:2px solid var(--neon-cyan); outline-offset:1px;}
   .schedule-row{
     display:flex;
     align-items:center;
@@ -2333,6 +2378,20 @@ function renderSchedulePanel(scenes) {
     <div class="cat-meta base-crew-note">
       Assign each scene to a shoot day (script order isn't shoot order — productions often shoot out of sequence). Then run a conflict check for realistic day loads, character turnaround, and location moves.
     </div>
+
+    <div class="auto-schedule-box">
+      <div class="auto-schedule-head">Auto-generate a draft schedule</div>
+      <div class="auto-schedule-body">
+        Groups scenes by location to minimize company moves, and balances complexity across days. This is a starting draft, not a final schedule — it doesn't know actor availability, location rental windows, or other real-world constraints only you have. Review and adjust after generating.
+      </div>
+      <div class="auto-schedule-row">
+        <label for="target-days-input">Target shoot days</label>
+        <input type="number" min="1" id="target-days-input" value="${Math.max(1, Math.ceil(scenes.length / 6))}" />
+        <button class="btn-primary" id="auto-generate-btn">Auto-Generate Schedule</button>
+        <span class="scout-hint" id="auto-schedule-status"></span>
+      </div>
+    </div>
+
     <div class="schedule-toolbar">
       <button class="btn-primary" id="run-conflict-check">Run Conflict Check</button>
       <span class="scout-hint" id="schedule-status"></span>
@@ -2340,6 +2399,8 @@ function renderSchedulePanel(scenes) {
     <div id="schedule-rows">${rows}</div>
     <div id="conflict-results" style="margin-top:20px;"></div>
   `;
+
+  document.getElementById('auto-generate-btn').addEventListener('click', () => autoGenerateSchedule(scenes));
 
   panel.querySelectorAll('.day-input').forEach(input => {
     input.addEventListener('input', () => {
@@ -2351,6 +2412,79 @@ function renderSchedulePanel(scenes) {
   });
 
   document.getElementById('run-conflict-check').addEventListener('click', () => runConflictCheck(lastScenes));
+}
+
+// Generates a draft shoot-day schedule: groups scenes by location (to
+// minimize company moves) and balances complexity across days. This is a
+// deterministic packing algorithm, not an AI guess — same input always
+// produces the same output. It's a starting draft; it has no knowledge of
+// actor availability, location rental windows, or other real constraints.
+function autoGenerateSchedule(scenes) {
+  const statusEl3 = document.getElementById('auto-schedule-status');
+  const targetDaysInput = document.getElementById('target-days-input');
+  const targetDays = Math.max(1, parseInt(targetDaysInput.value, 10) || 1);
+
+  if (!scenes.length) {
+    statusEl3.textContent = 'No scenes to schedule.';
+    return;
+  }
+
+  // Group scenes by location, preserving original scene order within each group.
+  const locGroups = {};
+  const locOrder = [];
+  scenes.forEach(s => {
+    const loc = (s.location || 'UNSPECIFIED').toUpperCase();
+    if (!locGroups[loc]) { locGroups[loc] = []; locOrder.push(loc); }
+    locGroups[loc].push(s);
+  });
+
+  // Schedule the biggest location blocks first — keeps a location's scenes
+  // together and front-loads the hardest packing decisions.
+  const groupsSorted = locOrder.slice().sort((a, b) => locGroups[b].length - locGroups[a].length);
+
+  const MAX_SCENES_PER_DAY = 8;
+  const MAX_HIGH_PER_DAY = 2; // slightly stricter than the conflict-check threshold, to leave buffer
+
+  let day = 1;
+  let dayScenes = [];
+  let dayHighCount = 0;
+  const assignments = {};
+
+  function flushDay() {
+    if (dayScenes.length) {
+      dayScenes.forEach(s => { assignments[s.scene_number] = day; });
+      day++;
+      dayScenes = [];
+      dayHighCount = 0;
+    }
+  }
+
+  groupsSorted.forEach(loc => {
+    locGroups[loc].forEach(s => {
+      const isHigh = s.complexity === 'High';
+      const wouldExceed = (dayScenes.length + 1 > MAX_SCENES_PER_DAY) || (isHigh && dayHighCount + 1 > MAX_HIGH_PER_DAY);
+      if (wouldExceed && dayScenes.length > 0) flushDay();
+      dayScenes.push(s);
+      if (isHigh) dayHighCount++;
+    });
+    // Flush after each location group so a day doesn't casually mix locations.
+    flushDay();
+  });
+
+  const daysUsed = day - 1;
+
+  // Apply the generated assignments.
+  Object.keys(sceneShootDays).forEach(k => delete sceneShootDays[k]);
+  Object.assign(sceneShootDays, assignments);
+
+  renderSchedulePanel(scenes);
+
+  const newStatusEl = document.getElementById('auto-schedule-status');
+  if (daysUsed > targetDays) {
+    newStatusEl.textContent = `Generated a ${daysUsed}-day draft — needs ${daysUsed - targetDays} more day${daysUsed - targetDays === 1 ? '' : 's'} than your ${targetDays}-day target to avoid overloading days or mixing too many locations. Review below, or accept the longer schedule.`;
+  } else {
+    newStatusEl.textContent = `Generated a ${daysUsed}-day draft schedule, within your ${targetDays}-day target. Review and adjust below, then run the conflict check.`;
+  }
 }
 
 function runConflictCheck(scenes) {
@@ -2886,3 +3020,4 @@ function downloadFile(content, filename, mime) {
 </script>
 </body>
 </html>
+
