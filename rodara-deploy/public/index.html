@@ -2377,6 +2377,9 @@ function renderBudgetPanel(scenes) {
 // from the scenes array, so re-rendering during chunked parsing never wipes
 // values the user already typed in.
 const sceneShootDays = {};
+// Remembers the person's last-entered target-days value across panel
+// re-renders, so it doesn't silently reset to the auto-calculated default.
+let targetDaysValue = null;
 
 function scheduleRowHtml(s) {
   const day = sceneShootDays[s.scene_number] ?? '';
@@ -2438,7 +2441,7 @@ function renderSchedulePanel(scenes) {
       </div>
       <div class="auto-schedule-row">
         <label for="target-days-input">Target shoot days</label>
-        <input type="number" min="1" id="target-days-input" value="${Math.max(1, Math.ceil(scenes.length / 6))}" />
+        <input type="number" min="1" id="target-days-input" value="${targetDaysValue ?? Math.max(1, Math.ceil(scenes.length / 6))}" />
         <button class="btn-primary" id="auto-generate-btn">Auto-Generate Schedule</button>
         <span class="scout-hint" id="auto-schedule-status"></span>
       </div>
@@ -2453,6 +2456,9 @@ function renderSchedulePanel(scenes) {
   `;
 
   document.getElementById('auto-generate-btn').addEventListener('click', () => autoGenerateSchedule(scenes));
+  document.getElementById('target-days-input').addEventListener('input', (e) => {
+    targetDaysValue = e.target.value ? parseInt(e.target.value, 10) : null;
+  });
 
   panel.querySelectorAll('.day-input').forEach(input => {
     input.addEventListener('input', () => {
@@ -2484,6 +2490,7 @@ function autoGenerateSchedule(scenes) {
   const statusEl3 = document.getElementById('auto-schedule-status');
   const targetDaysInput = document.getElementById('target-days-input');
   const targetDays = Math.max(1, parseInt(targetDaysInput.value, 10) || 1);
+  targetDaysValue = targetDays; // persist across re-renders so the field doesn't reset
 
   if (!scenes.length) {
     statusEl3.textContent = 'No scenes to schedule.';
@@ -2505,10 +2512,12 @@ function autoGenerateSchedule(scenes) {
 
   const MAX_SCENES_PER_DAY = 8;
   const MAX_HIGH_PER_DAY = 2; // slightly stricter than the conflict-check threshold, to leave buffer
+  const MAX_LOCATIONS_PER_DAY = 2; // matches the conflict-checker's own location-move threshold
 
   let day = 1;
   let dayScenes = [];
   let dayHighCount = 0;
+  let dayLocations = new Set();
   const assignments = {};
 
   function flushDay() {
@@ -2517,20 +2526,31 @@ function autoGenerateSchedule(scenes) {
       day++;
       dayScenes = [];
       dayHighCount = 0;
+      dayLocations = new Set();
     }
   }
 
+  // Pack scenes onto the current day as long as it stays within scene count,
+  // high-complexity count, AND distinct-location limits — this is what lets
+  // several small one-scene locations share a day instead of each forcing
+  // its own separate day.
   groupsSorted.forEach(loc => {
     locGroups[loc].forEach(s => {
       const isHigh = s.complexity === 'High';
-      const wouldExceed = (dayScenes.length + 1 > MAX_SCENES_PER_DAY) || (isHigh && dayHighCount + 1 > MAX_HIGH_PER_DAY);
-      if (wouldExceed && dayScenes.length > 0) flushDay();
+      const introducesNewLocation = !dayLocations.has(loc);
+      const wouldExceedScenes = dayScenes.length + 1 > MAX_SCENES_PER_DAY;
+      const wouldExceedHigh = isHigh && dayHighCount + 1 > MAX_HIGH_PER_DAY;
+      const wouldExceedLocations = introducesNewLocation && dayLocations.size + 1 > MAX_LOCATIONS_PER_DAY;
+
+      if ((wouldExceedScenes || wouldExceedHigh || wouldExceedLocations) && dayScenes.length > 0) {
+        flushDay();
+      }
       dayScenes.push(s);
       if (isHigh) dayHighCount++;
+      dayLocations.add(loc);
     });
-    // Flush after each location group so a day doesn't casually mix locations.
-    flushDay();
   });
+  flushDay(); // flush whatever's left
 
   const daysUsed = day - 1;
 
