@@ -90,69 +90,6 @@
   }
 
   /* Access gate — private beta code entry */
-  .access-gate{
-    position:fixed;
-    inset:0;
-    z-index:1000;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:rgba(6,9,15,0.92);
-    backdrop-filter:blur(6px);
-    padding:20px;
-  }
-  .access-gate.hidden{display:none;}
-  .access-gate-card{
-    background:var(--panel);
-    border:1px solid var(--navy-line);
-    border-radius:24px;
-    padding:36px 32px;
-    max-width:340px;
-    width:100%;
-    text-align:center;
-    box-shadow:0 0 60px rgba(61,240,224,0.08);
-  }
-  .access-gate-eyebrow{
-    font-family:'Courier Prime', monospace;
-    font-size:11px;
-    letter-spacing:.18em;
-    text-transform:uppercase;
-    color:var(--neon-cyan);
-    margin-bottom:10px;
-  }
-  .access-gate-card h2{
-    font-family:'Courier Prime', monospace;
-    font-size:32px;
-    margin:0 0 14px;
-    color:var(--ink);
-  }
-  .access-gate-card p{
-    font-size:13.5px;
-    color:var(--ink-soft);
-    margin:0 0 20px;
-    line-height:1.5;
-  }
-  #access-code-input{
-    width:100%;
-    background:var(--white);
-    border:1px solid var(--navy-line);
-    border-radius:999px;
-    padding:11px 18px;
-    color:var(--ink);
-    font-family:'Inter',sans-serif;
-    font-size:14px;
-    text-align:center;
-    margin-bottom:14px;
-  }
-  #access-code-input:focus{outline:2px solid var(--neon-cyan); outline-offset:1px;}
-  #access-code-submit{width:100%;}
-  .access-gate-error{
-    color:var(--neon-magenta);
-    font-size:12.5px;
-    margin-top:12px;
-    min-height:16px;
-  }
-
   /* Original line-art film-gear silhouettes — subtle background decoration, drawn from scratch */
   .gear-icon{
     position:fixed;
@@ -1104,17 +1041,6 @@
   <line x1="150" y1="115" x2="180" y2="125"/>
 </svg>
 
-<div id="access-gate" class="access-gate">
-  <div class="access-gate-card">
-    <div class="access-gate-eyebrow">Fade In</div>
-    <h2>rodara</h2>
-    <p>This is a private beta. Enter your access code to continue.</p>
-    <input type="password" id="access-code-input" placeholder="Access code" autocomplete="off" />
-    <button id="access-code-submit" class="btn-primary">Enter</button>
-    <div id="access-gate-error" class="access-gate-error"></div>
-  </div>
-</div>
-
 <div class="wrap">
 
   <div class="titleblock">
@@ -1147,6 +1073,18 @@
     </div>
     <div class="upload-status" id="upload-status"></div>
 
+    <div class="scout-bar" id="budget-bar">
+      <label for="budget-tier" class="scout-label">Budget tier</label>
+      <select id="budget-tier">
+        <option value="">Not specified</option>
+        <option value="student">Student / no-budget</option>
+        <option value="micro">Micro-budget indie (under ~$50K)</option>
+        <option value="low">Low-budget indie (~$50K-$1M)</option>
+        <option value="studio">Studio / well-funded</option>
+      </select>
+      <span class="scout-hint">Select before running the breakdown — it shapes how the AI judges budget risk for each scene</span>
+    </div>
+
     <textarea id="script-input" placeholder="INT. WAREHOUSE - NIGHT
 
 Rain hammers the tin roof. MAYA (30s, soaked, jaw set) kicks open a rusted door...&#10;&#10;Paste as much of your script as you'd like, or upload a PDF/.fdx/.txt file above."></textarea>
@@ -1171,18 +1109,6 @@ Rain hammers the tin roof. MAYA (30s, soaked, jaw set) kicks open a rusted door.
         <label for="city-input" class="scout-label">Scouting near</label>
         <input type="text" id="city-input" placeholder="e.g. Atlanta, GA" />
         <span class="scout-hint">Used when you click "Find real locations" on a scene</span>
-      </div>
-
-      <div class="scout-bar" id="budget-bar">
-        <label for="budget-tier" class="scout-label">Budget tier</label>
-        <select id="budget-tier">
-          <option value="">Not specified</option>
-          <option value="student">Student / no-budget</option>
-          <option value="micro">Micro-budget indie (under ~$50K)</option>
-          <option value="low">Low-budget indie (~$50K-$1M)</option>
-          <option value="studio">Studio / well-funded</option>
-        </select>
-        <span class="scout-hint">Frames the cost-risk flags below — no dollar estimates are generated</span>
       </div>
 
       <div class="tabs" id="tabs">
@@ -1399,6 +1325,24 @@ async function renderPageToJpegBase64(pdf, pageNum, scale = 1.3) {
   return dataUrl.split(',')[1];
 }
 
+// Tier-specific guidance injected into the parsing prompts so budget_impact
+// and budget_note judgments actually shift based on the selected production
+// budget, instead of the dropdown being purely a cosmetic label.
+const BUDGET_TIER_CONTEXT = {
+  student: "This is a STUDENT / NO-BUDGET production. Be aggressive about flagging budget risk: treat almost any VFX, animals, stunts, permits, crowd scenes, or specialty equipment as at least MEDIUM risk, and HIGH if it would require a paid specialist, a rental, or a permit fee, since even small costs are hard to absorb on this budget. Actively look for practical/cheaper alternatives and note them whenever a real tradeoff exists.",
+  micro: "This is a MICRO-BUDGET INDIE production (roughly under $50K). Flag VFX, stunts, animals, permits, and specialty equipment as at least MEDIUM budget risk by default, and HIGH if they'd require dedicated specialists, rentals, or multiple permits. Prefer noting practical alternatives when reasonably equivalent to VFX.",
+  low: "This is a LOW-BUDGET INDIE production (roughly $50K-$1M). Use standard, balanced budget-risk judgment — this tier has some room to absorb moderate specialty costs, so reserve HIGH for genuinely significant asks (major stunts, extensive VFX, protracted permits), not routine specialty needs.",
+  studio: "This is a WELL-FUNDED / STUDIO-BACKED production. Be conservative about flagging budget risk: most specialty needs (a stunt, a permit, a piece of specialty equipment) should be treated as routine, not risky. Reserve HIGH only for genuinely large-scale asks (major VFX sequences, extensive stunt work, significant crowd/extras logistics).",
+};
+
+const BUDGET_TIER_INSTRUCTIONS_DEFAULT = "No specific production budget tier was selected — use general, balanced judgment for budget_impact.";
+
+function getBudgetTierInstructions() {
+  const select = document.getElementById('budget-tier');
+  const tier = select ? select.value : '';
+  return BUDGET_TIER_CONTEXT[tier] || BUDGET_TIER_INSTRUCTIONS_DEFAULT;
+}
+
 const VISION_SYSTEM_PROMPT = `You are a professional 1st AD performing a script breakdown by reading screenplay page images directly (this PDF has no extractable text layer, so you are reading it visually like a human would). For the pages shown, extract every scene as structured JSON. Respond with ONLY a raw JSON array, no markdown fences, no commentary, matching exactly this shape:
 
 [
@@ -1467,13 +1411,15 @@ async function runVisionBreakdown(file, triggerBtn) {
         imageBlocks.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } });
       }
 
+      const visionSystemPromptWithBudget = VISION_SYSTEM_PROMPT + `\n\nBUDGET CONTEXT (applies to the budget_impact and budget_note fields): ${getBudgetTierInstructions()}`;
+
       const response = await fetchWithRetry(API_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-5",
           max_tokens: 4096,
-          system: VISION_SYSTEM_PROMPT,
+          system: visionSystemPromptWithBudget,
           messages: [
             {
               role: "user",
@@ -1725,13 +1671,15 @@ async function processChunkRobust(batchText, depth, onRetryStatus) {
 }
 
 async function callParseAPI(chunkText, onRetryStatus) {
+  const textSystemPromptWithBudget = TEXT_SYSTEM_PROMPT + `\n\nBUDGET CONTEXT (applies to the budget_impact and budget_note fields): ${getBudgetTierInstructions()}`;
+
   const response = await fetchWithRetry(API_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "claude-sonnet-5",
       max_tokens: 8192,
-      system: TEXT_SYSTEM_PROMPT,
+      system: textSystemPromptWithBudget,
       messages: [
         { role: "user", content: `Break down this script text:\n\n${chunkText}` }
       ]
@@ -1768,54 +1716,10 @@ async function callParseAPI(chunkText, onRetryStatus) {
 // (see DEPLOY.md).
 const API_ENDPOINT = '/api/anthropic';
 
-// Access code for the private beta gate. Populated from localStorage if the
-// person already entered it once, otherwise set when they submit the gate form.
-let ACCESS_CODE = localStorage.getItem('rodara_access_code') || '';
-
-// Access gate logic — show the code-entry screen unless already unlocked.
-(function initAccessGate() {
-  const gate = document.getElementById('access-gate');
-  const input = document.getElementById('access-code-input');
-  const submitBtn = document.getElementById('access-code-submit');
-  const errorEl = document.getElementById('access-gate-error');
-
-  function unlock(code) {
-    ACCESS_CODE = code;
-    localStorage.setItem('rodara_access_code', code);
-    gate.classList.add('hidden');
-  }
-
-  if (ACCESS_CODE) {
-    gate.classList.add('hidden');
-  }
-
-  function trySubmit() {
-    const val = input.value.trim();
-    if (!val) {
-      errorEl.textContent = 'Enter a code to continue.';
-      return;
-    }
-    errorEl.textContent = '';
-    unlock(val);
-  }
-
-  submitBtn.addEventListener('click', trySubmit);
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') trySubmit();
-  });
-
-  // Called from elsewhere if a request comes back 401 (wrong code) — reopens
-  // the gate and clears the stored bad code so they can re-enter.
-  window.reopenAccessGate = function (message) {
-    localStorage.removeItem('rodara_access_code');
-    ACCESS_CODE = '';
-    gate.classList.remove('hidden');
-    errorEl.textContent = message || 'That code was rejected. Try again.';
-    input.value = '';
-    input.focus();
-  };
-})();
-
+// No access-code gate — the app is open. If you ever want to re-add a
+// controlled-access beta gate, this is where ACCESS_CODE would be wired
+// back up to a lock screen and sent as an 'x-access-code' header.
+const ACCESS_CODE = '';
 
 // Calls fetch with automatic retry on rate-limit (429) or overload (529) responses,
 // using exponential backoff (and honoring a Retry-After header when present).
@@ -1897,10 +1801,7 @@ async function runBreakdown() {
     } else if (/404/.test(err.message)) {
       statusEl.textContent = 'Backend not found (404). If this is a deployed copy, make sure /api/anthropic.js is deployed alongside this page and ANTHROPIC_API_KEY is set.';
     } else if (/401/.test(err.message)) {
-      if (window.reopenAccessGate) {
-        window.reopenAccessGate('That access code was rejected. Try again.');
-      }
-      statusEl.textContent = 'Access code rejected — enter it again in the box that just appeared.';
+      statusEl.textContent = 'Unauthorized (401). If ACCESS_CODE is still set on the Vercel backend, remove that environment variable to match the frontend (which no longer sends one), or check ANTHROPIC_API_KEY is set correctly.';
     } else if (/429/.test(err.message)) {
       statusEl.textContent = 'Still rate limited after several retries. Wait a minute and try again — or try a shorter script section.';
     } else {
